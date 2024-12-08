@@ -169,7 +169,7 @@ const updateChart = () => {
         data: trendLineData,
         lineStyle: {
           type: 'dashed',
-          width: 2,
+          width: 0,
           color: 'rgba(231, 76, 60, 0.8)'
         }
       });
@@ -318,7 +318,8 @@ let timer;
 onMounted(() => {
   initChart();
   fetchFansData();
-  timer = setInterval(fetchFansData, 15000);
+  // 刷新频率
+  timer = setInterval(fetchFansData, 5000);
 
   window.addEventListener('resize', () => {
     chart.value?.resize();
