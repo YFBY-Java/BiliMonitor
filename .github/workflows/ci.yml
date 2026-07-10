@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  backend:
+    name: 后端测试
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: social-data-monitor/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up Java
+        uses: actions/setup-java@v5.5.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Run backend tests
+        shell: pwsh
+        run: .\mvnw.cmd test
+
+  frontend:
+    name: 前端构建
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: social-data-monitor/frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: social-data-monitor/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build

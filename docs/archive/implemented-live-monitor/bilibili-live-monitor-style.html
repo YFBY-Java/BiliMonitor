@@ -1,0 +1,1698 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>B站直播间监控页样式稿</title>
+  <style>
+    :root {
+      color: #1f2937;
+      background: #f5f7fb;
+      font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      --page-bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --line: #e4e7ed;
+      --line-strong: #d7dce5;
+      --text: #1f2937;
+      --muted: #667085;
+      --subtle: #98a2b3;
+      --primary: #409eff;
+      --primary-soft: #ecf5ff;
+      --bili: #fb7299;
+      --bili-soft: #fff0f4;
+      --success: #12b76a;
+      --success-soft: #ecfdf3;
+      --warning: #f79009;
+      --warning-soft: #fffaeb;
+      --danger: #f04438;
+      --danger-soft: #fef3f2;
+      --info: #2e90fa;
+      --info-soft: #eff8ff;
+      --radius: 8px;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--page-bg);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .style-page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 236px minmax(0, 1fr);
+    }
+
+    .side-nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 18px 14px;
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--bili-soft);
+      color: var(--bili);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav-group {
+      padding: 16px 0 8px;
+    }
+
+    .nav-title {
+      margin: 0 10px 8px;
+      color: var(--subtle);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 38px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: #475467;
+      font-size: 14px;
+    }
+
+    .nav-item + .nav-item {
+      margin-top: 4px;
+    }
+
+    .nav-item.active {
+      background: var(--primary-soft);
+      color: #175cd3;
+      font-weight: 700;
+    }
+
+    .nav-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--success);
+    }
+
+    .main {
+      min-width: 0;
+      padding: 24px;
+    }
+
+    .doc-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .doc-header h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .doc-header p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .doc-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill,
+    .tag,
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .pill {
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: #475467;
+      font-size: 13px;
+    }
+
+    .pill.active {
+      border-color: #b2ddff;
+      background: var(--primary-soft);
+      color: #175cd3;
+      font-weight: 700;
+    }
+
+    .variant-index {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .variant-index a {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      background: #ffffff;
+      color: #344054;
+      font-size: 14px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+
+    .variant {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .variant-caption {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    .variant-caption h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .variant-caption p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .variant-caption .tag {
+      min-height: 28px;
+      padding: 0 10px;
+      color: #067647;
+      background: var(--success-soft);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .app-canvas {
+      padding: 20px;
+      background: var(--page-bg);
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .page-header h3 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+
+    .page-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .header-tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: #344054;
+      background: #ffffff;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .button.primary {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .button.ghost {
+      background: var(--surface-soft);
+    }
+
+    .button.icon {
+      width: 34px;
+      padding: 0;
+    }
+
+    .control-surface {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      margin-bottom: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .segmented {
+      display: inline-flex;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+    }
+
+    .segmented span {
+      min-height: 28px;
+      min-width: 64px;
+      padding: 0 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #667085;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .segmented span.active {
+      background: #ffffff;
+      color: #175cd3;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    .field,
+    .select-field {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: #ffffff;
+      color: #344054;
+      font-size: 14px;
+    }
+
+    .field {
+      width: 220px;
+    }
+
+    .short-field {
+      width: 92px;
+      text-align: right;
+    }
+
+    .toolbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar-meta span {
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .toolbar-meta span + span::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      width: 3px;
+      height: 3px;
+      border-radius: 999px;
+      background: #cbd5e1;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .summary-grid.five {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .summary-item {
+      min-height: 86px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+    }
+
+    .summary-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .summary-item strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .summary-item small {
+      display: block;
+      margin-top: 6px;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-heading h4 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .section-heading p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      padding: 14px;
+    }
+
+    .room-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(228px, 1fr);
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .room-tile {
+      min-height: 198px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      position: relative;
+    }
+
+    .room-tile.live {
+      border-color: #abe7c9;
+    }
+
+    .room-tile.error {
+      border-color: #fecdca;
+    }
+
+    .room-top,
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      color: #ffffff;
+      background: #667085;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .avatar.pink {
+      background: var(--bili);
+    }
+
+    .avatar.blue {
+      background: var(--info);
+    }
+
+    .avatar.green {
+      background: var(--success);
+    }
+
+    .avatar.amber {
+      background: var(--warning);
+    }
+
+    .identity-text {
+      min-width: 0;
+    }
+
+    .identity-text strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    .identity-text span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tag {
+      min-height: 24px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .tag.live {
+      color: #067647;
+      background: var(--success-soft);
+    }
+
+    .tag.off {
+      color: #475467;
+      background: #f2f4f7;
+    }
+
+    .tag.loop {
+      color: #175cd3;
+      background: var(--info-soft);
+    }
+
+    .tag.error {
+      color: #b42318;
+      background: var(--danger-soft);
+    }
+
+    .tag.warn {
+      color: #b54708;
+      background: var(--warning-soft);
+    }
+
+    .room-title {
+      min-height: 42px;
+      color: #344054;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .room-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      padding: 8px;
+      border-radius: 8px;
+      background: var(--surface-soft);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 15px;
+    }
+
+    .progress {
+      height: 6px;
+      border-radius: 999px;
+      background: #eef2f6;
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--primary);
+    }
+
+    .room-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .room-actions .button {
+      min-height: 30px;
+      flex: 1;
+      padding: 0 8px;
+      font-size: 12px;
+    }
+
+    .detail-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .cover {
+      min-height: 192px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(251,114,153,0.14) 0 28%, transparent 28%),
+        repeating-linear-gradient(135deg, #f9fafb 0 14px, #eef2f7 14px 28px);
+      display: flex;
+      align-items: flex-end;
+      padding: 14px;
+    }
+
+    .cover-caption {
+      display: inline-flex;
+      min-height: 32px;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(228, 231, 237, 0.9);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .detail-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chart {
+      height: 232px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      padding: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chart-grid {
+      position: absolute;
+      inset: 42px 12px 34px 48px;
+      background-image:
+        linear-gradient(to right, #edf1f7 1px, transparent 1px),
+        linear-gradient(to bottom, #edf1f7 1px, transparent 1px);
+      background-size: 25% 100%, 100% 25%;
+    }
+
+    .chart-line {
+      position: absolute;
+      left: 48px;
+      right: 12px;
+      top: 52px;
+      height: 136px;
+    }
+
+    .chart-line span {
+      position: absolute;
+      height: 3px;
+      border-radius: 999px;
+      transform-origin: left center;
+      background: var(--bili);
+    }
+
+    .chart-line .s1 { left: 0; top: 96px; width: 82px; transform: rotate(-17deg); }
+    .chart-line .s2 { left: 78px; top: 72px; width: 74px; transform: rotate(8deg); background: var(--primary); }
+    .chart-line .s3 { left: 148px; top: 82px; width: 92px; transform: rotate(-24deg); background: var(--success); }
+    .chart-line .s4 { left: 235px; top: 44px; width: 74px; transform: rotate(12deg); background: var(--warning); }
+    .chart-line .s5 { left: 304px; top: 58px; width: 82px; transform: rotate(-10deg); }
+
+    .chart-title {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 5px;
+      border-radius: 999px;
+      background: var(--bili);
+    }
+
+    .legend span:nth-child(2)::before {
+      background: var(--primary);
+    }
+
+    .legend span:nth-child(3)::before {
+      background: var(--success);
+    }
+
+    .ops-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.9fr);
+      gap: 14px;
+    }
+
+    .table-panel {
+      overflow: hidden;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      height: 42px;
+      padding: 0 12px;
+      text-align: left;
+      color: var(--muted);
+      background: var(--surface-soft);
+      font-weight: 750;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    td {
+      height: 58px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+      color: #344054;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .num {
+      font-weight: 750;
+      color: #1f2937;
+      white-space: nowrap;
+    }
+
+    .delta {
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .side-panel {
+      min-width: 0;
+    }
+
+    .side-cover {
+      min-height: 132px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(64,158,255,0.12) 0 34%, transparent 34%),
+        repeating-linear-gradient(135deg, #f8fafc 0 13px, #eef2f7 13px 26px);
+      margin-bottom: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .mini-chart {
+      height: 96px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(to top, transparent 31%, #eef2f6 32%, transparent 33%),
+        linear-gradient(to right, transparent 24%, #eef2f6 25%, transparent 26%);
+      position: relative;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+
+    .mini-bars {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 10px;
+      height: 70px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .mini-bars span {
+      flex: 1;
+      min-width: 8px;
+      border-radius: 4px 4px 0 0;
+      background: var(--primary);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .event {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      font-size: 13px;
+    }
+
+    .event time {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .event strong {
+      display: block;
+      color: #344054;
+      font-weight: 750;
+    }
+
+    .event span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .tabs span {
+      min-height: 38px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .tabs span.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .discovery-layout {
+      display: grid;
+      grid-template-columns: 208px minmax(0, 1fr) 260px;
+      gap: 14px;
+    }
+
+    .filter-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .filter-row {
+      min-height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #475467;
+      background: #ffffff;
+      font-size: 13px;
+    }
+
+    .filter-row.active {
+      border-color: #b2ddff;
+      background: var(--primary-soft);
+      color: #175cd3;
+      font-weight: 750;
+    }
+
+    .recommend-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .rec-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .thumb {
+      min-height: 118px;
+      background:
+        linear-gradient(90deg, rgba(251,114,153,0.16) 0 26%, transparent 26%),
+        repeating-linear-gradient(135deg, #f8fafc 0 12px, #eef2f7 12px 24px);
+      display: flex;
+      align-items: flex-end;
+      padding: 10px;
+    }
+
+    .thumb.blue {
+      background:
+        linear-gradient(90deg, rgba(64,158,255,0.16) 0 28%, transparent 28%),
+        repeating-linear-gradient(135deg, #f8fafc 0 12px, #eef2f7 12px 24px);
+    }
+
+    .thumb.green {
+      background:
+        linear-gradient(90deg, rgba(18,183,106,0.16) 0 28%, transparent 28%),
+        repeating-linear-gradient(135deg, #f8fafc 0 12px, #eef2f7 12px 24px);
+    }
+
+    .rec-body {
+      padding: 10px;
+    }
+
+    .rec-body strong {
+      display: block;
+      height: 40px;
+      color: #344054;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow: hidden;
+    }
+
+    .rec-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 8px 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .basket-list {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .basket-panel {
+      min-width: 0;
+      padding-left: 14px;
+      border-left: 1px solid var(--line);
+    }
+
+    .basket-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+    }
+
+    .basket-item strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .basket-item span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1280px) {
+      .style-page {
+        grid-template-columns: 1fr;
+      }
+
+      .side-nav {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .nav-title {
+        width: 100%;
+      }
+
+      .nav-item {
+        min-width: 150px;
+      }
+
+      .ops-layout,
+      .discovery-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .recommend-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .basket-panel {
+        padding-left: 0;
+        padding-top: 14px;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .main {
+        padding: 16px;
+      }
+
+      .doc-header,
+      .page-header,
+      .control-surface,
+      .variant-caption {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .summary-grid,
+      .summary-grid.five,
+      .detail-layout,
+      .detail-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field {
+        width: min(100%, 220px);
+      }
+    }
+
+    @media (max-width: 620px) {
+      .summary-grid,
+      .summary-grid.five,
+      .detail-layout,
+      .detail-metrics,
+      .recommend-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .room-strip {
+        grid-auto-flow: row;
+        grid-auto-columns: unset;
+        grid-template-columns: 1fr;
+      }
+
+      th:nth-child(3),
+      td:nth-child(3),
+      th:nth-child(4),
+      td:nth-child(4) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="style-page">
+    <aside class="side-nav" aria-label="项目导航样式">
+      <div class="brand">
+        <div class="brand-mark">B</div>
+        <div>
+          <strong>BiliMonitor</strong>
+          <span>多平台数据监控</span>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-title">监控</p>
+        <a class="nav-item" href="#variant-1">B站粉丝趋势</a>
+        <a class="nav-item active" href="#variant-1">直播间监控 <i class="nav-dot"></i></a>
+        <a class="nav-item" href="#variant-2">采集任务</a>
+        <a class="nav-item" href="#variant-3">发现样本</a>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-title">文档</p>
+        <a class="nav-item" href="bilibili-live-monitor-page-design.md">技术设计</a>
+        <a class="nav-item" href="../../bilibili-live-room-api-research.md">接口研究</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="doc-header">
+        <div>
+          <h1>B站直播间监控页样式稿</h1>
+          <p>基于当前 `social-data-monitor` 的后台工具页风格绘制。三版都只表达低风控匿名接口能支撑的数据面。</p>
+        </div>
+        <div class="doc-actions">
+          <span class="pill active">浅色后台风格</span>
+          <span class="pill">8px 卡片</span>
+          <span class="pill">Element Plus 密度</span>
+        </div>
+      </header>
+
+      <nav class="variant-index" aria-label="三版样式跳转">
+        <a href="#variant-1">方案一：状态卡片监控台</a>
+        <a href="#variant-2">方案二：运行态调度看板</a>
+        <a href="#variant-3">方案三：发现与监控一体页</a>
+      </nav>
+
+      <section class="variant" id="variant-1">
+        <div class="variant-caption">
+          <div>
+            <h2>方案一：状态卡片监控台</h2>
+            <p>第一版推荐样式。继承当前 B站粉丝页的横向卡片、摘要指标和趋势图结构，适合 1 到 30 个直播间。</p>
+          </div>
+          <span class="tag">首版推荐</span>
+        </div>
+
+        <div class="app-canvas">
+          <div class="page-header">
+            <div>
+              <h3>B站直播间监控</h3>
+              <p>匿名公开接口采集直播状态、在线人数和房间信息。</p>
+            </div>
+            <div class="header-tools">
+              <button class="button ghost" type="button">主题 浅色</button>
+              <button class="button" type="button">刷新</button>
+            </div>
+          </div>
+
+          <section class="control-surface">
+            <div class="form-row">
+              <div class="segmented" aria-label="添加类型">
+                <span class="active">房间号</span>
+                <span>UID</span>
+              </div>
+              <input class="field" value="7734200" aria-label="房间号" />
+              <input class="field short-field" value="300" aria-label="间隔秒" />
+              <button class="button primary" type="button">添加监控</button>
+            </div>
+            <div class="toolbar-meta">
+              <span>12 个房间</span>
+              <span>4 个直播中</span>
+              <span>1 个异常</span>
+              <span>6 个今日开播</span>
+            </div>
+          </section>
+
+          <section class="summary-grid">
+            <article class="summary-item">
+              <span>直播中房间</span>
+              <strong>4</strong>
+              <small>较 10 分钟前 +1</small>
+            </article>
+            <article class="summary-item">
+              <span>总在线/热度</span>
+              <strong>128.4万</strong>
+              <small>来自 4 个直播间</small>
+            </article>
+            <article class="summary-item">
+              <span>今日开播次数</span>
+              <strong>9</strong>
+              <small>最近一次 01:32</small>
+            </article>
+            <article class="summary-item">
+              <span>最近状态变化</span>
+              <strong>3 分钟前</strong>
+              <small>某音乐区房间开播</small>
+            </article>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading">
+              <div>
+                <h4>监控直播间</h4>
+                <p>横向卡片展示采集节奏，最多选择 4 个直播间进入趋势图。</p>
+              </div>
+              <span class="pill">3/4 已选趋势</span>
+            </div>
+
+            <div class="room-strip">
+              <article class="room-tile live">
+                <div class="room-top">
+                  <div class="identity">
+                    <div class="avatar pink">原</div>
+                    <div class="identity-text">
+                      <strong>原神官方直播间</strong>
+                      <span>UID 401742377 · 房间 7734200</span>
+                    </div>
+                  </div>
+                  <span class="tag live">LIVE</span>
+                </div>
+                <div class="room-title">4.7 版本前瞻特别节目，限时兑换码与新角色演示。</div>
+                <div class="room-stats">
+                  <div class="stat"><span>在线/热度</span><strong>84.2万</strong></div>
+                  <div class="stat"><span>开播时长</span><strong>01:18</strong></div>
+                </div>
+                <div class="progress"><span style="width: 62%"></span></div>
+                <div class="room-actions">
+                  <button class="button" type="button">打开</button>
+                  <button class="button" type="button">趋势</button>
+                  <button class="button" type="button">暂停</button>
+                </div>
+              </article>
+
+              <article class="room-tile live">
+                <div class="room-top">
+                  <div class="identity">
+                    <div class="avatar green">央</div>
+                    <div class="identity-text">
+                      <strong>央视新闻</strong>
+                      <span>UID 456664753 · 房间 21686237</span>
+                    </div>
+                  </div>
+                  <span class="tag live">LIVE</span>
+                </div>
+                <div class="room-title">新闻直播间：整点新闻与现场连线。</div>
+                <div class="room-stats">
+                  <div class="stat"><span>在线/热度</span><strong>31.6万</strong></div>
+                  <div class="stat"><span>开播时长</span><strong>03:42</strong></div>
+                </div>
+                <div class="progress"><span style="width: 35%"></span></div>
+                <div class="room-actions">
+                  <button class="button" type="button">打开</button>
+                  <button class="button" type="button">趋势</button>
+                  <button class="button" type="button">暂停</button>
+                </div>
+              </article>
+
+              <article class="room-tile">
+                <div class="room-top">
+                  <div class="identity">
+                    <div class="avatar blue">音</div>
+                    <div class="identity-text">
+                      <strong>音乐区夜场</strong>
+                      <span>UID 22334455 · 房间 980011</span>
+                    </div>
+                  </div>
+                  <span class="tag off">未开播</span>
+                </div>
+                <div class="room-title">上次标题：睡前歌单，明晚继续。</div>
+                <div class="room-stats">
+                  <div class="stat"><span>在线/热度</span><strong>-</strong></div>
+                  <div class="stat"><span>上次开播</span><strong>昨天</strong></div>
+                </div>
+                <div class="progress"><span style="width: 82%"></span></div>
+                <div class="room-actions">
+                  <button class="button" type="button">打开</button>
+                  <button class="button" type="button">趋势</button>
+                  <button class="button" type="button">刷新</button>
+                </div>
+              </article>
+
+              <article class="room-tile error">
+                <div class="room-top">
+                  <div class="identity">
+                    <div class="avatar amber">游</div>
+                    <div class="identity-text">
+                      <strong>单机游戏观察</strong>
+                      <span>UID 77889901 · 房间 661210</span>
+                    </div>
+                  </div>
+                  <span class="tag error">异常</span>
+                </div>
+                <div class="room-title">最近一次采集返回 -352，已停止短时间重试。</div>
+                <div class="room-stats">
+                  <div class="stat"><span>最后成功</span><strong>18 分钟前</strong></div>
+                  <div class="stat"><span>重试策略</span><strong>退避</strong></div>
+                </div>
+                <div class="progress"><span style="width: 18%; background: var(--danger)"></span></div>
+                <div class="room-actions">
+                  <button class="button" type="button">打开</button>
+                  <button class="button" type="button">查看</button>
+                  <button class="button" type="button">暂停</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="detail-layout">
+            <div class="panel">
+              <div class="section-heading">
+                <div>
+                  <h4>选中直播间详情</h4>
+                  <p>原神官方直播间 · 网游 · 手机游戏</p>
+                </div>
+                <span class="tag live">直播中</span>
+              </div>
+              <div class="cover">
+                <span class="cover-caption">关键帧 / 封面预览</span>
+              </div>
+              <div class="detail-metrics">
+                <div class="stat"><span>真实房间</span><strong>7734200</strong></div>
+                <div class="stat"><span>短号</span><strong>3</strong></div>
+                <div class="stat"><span>关注</span><strong>1263万</strong></div>
+                <div class="stat"><span>最后采集</span><strong>01:42</strong></div>
+              </div>
+            </div>
+
+            <div class="chart">
+              <div class="chart-title">
+                <span>近 24 小时在线趋势</span>
+                <div class="legend">
+                  <span>原神</span>
+                  <span>央视</span>
+                  <span>音乐区</span>
+                </div>
+              </div>
+              <div class="chart-grid"></div>
+              <div class="chart-line" aria-hidden="true">
+                <span class="s1"></span>
+                <span class="s2"></span>
+                <span class="s3"></span>
+                <span class="s4"></span>
+                <span class="s5"></span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="variant" id="variant-2">
+        <div class="variant-caption">
+          <div>
+            <h2>方案二：运行态调度看板</h2>
+            <p>表格、详情侧栏和事件流组合，适合大量房间的状态扫描、异常定位和批量操作。</p>
+          </div>
+          <span class="tag">规模化监控</span>
+        </div>
+
+        <div class="app-canvas">
+          <div class="page-header">
+            <div>
+              <h3>B站直播间监控</h3>
+              <p>按状态、分区和采集任务扫描直播间运行态。</p>
+            </div>
+            <div class="header-tools">
+              <button class="button" type="button">批量刷新</button>
+              <button class="button primary" type="button">添加房间</button>
+            </div>
+          </div>
+
+          <section class="control-surface">
+            <div class="form-row">
+              <div class="segmented">
+                <span class="active">全部</span>
+                <span>直播中</span>
+                <span>未开播</span>
+                <span>异常</span>
+              </div>
+              <select class="select-field" aria-label="分区">
+                <option>全部分区</option>
+              </select>
+              <input class="field" value="关键字 / UID / 房间号" aria-label="搜索" />
+            </div>
+            <div class="toolbar-meta">
+              <span>到期任务 8</span>
+              <span>退避中 1</span>
+              <span>平均间隔 300 秒</span>
+            </div>
+          </section>
+
+          <section class="summary-grid five">
+            <article class="summary-item"><span>直播中</span><strong>18</strong><small>占比 38%</small></article>
+            <article class="summary-item"><span>未开播</span><strong>26</strong><small>稳定</small></article>
+            <article class="summary-item"><span>轮播</span><strong>3</strong><small>分区多为知识</small></article>
+            <article class="summary-item"><span>异常</span><strong>1</strong><small>-352 已退避</small></article>
+            <article class="summary-item"><span>平均在线</span><strong>7.3万</strong><small>直播房间均值</small></article>
+          </section>
+
+          <section class="ops-layout">
+            <div class="panel table-panel">
+              <table>
+                <thead>
+                  <tr>
+                    <th>主播/房间</th>
+                    <th>状态</th>
+                    <th>标题</th>
+                    <th>分区</th>
+                    <th>在线</th>
+                    <th>下次采集</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div class="identity"><div class="avatar pink">原</div><div class="identity-text"><strong>原神官方直播间</strong><span>7734200</span></div></div></td>
+                    <td><span class="tag live">LIVE</span></td>
+                    <td>版本前瞻特别节目</td>
+                    <td>手机游戏</td>
+                    <td><span class="num">84.2万</span> <span class="delta">+8.1%</span></td>
+                    <td>42 秒</td>
+                    <td><button class="button icon" type="button">刷</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="identity"><div class="avatar green">央</div><div class="identity-text"><strong>央视新闻</strong><span>21686237</span></div></div></td>
+                    <td><span class="tag live">LIVE</span></td>
+                    <td>新闻直播间</td>
+                    <td>新闻</td>
+                    <td><span class="num">31.6万</span> <span class="delta">+1.4%</span></td>
+                    <td>1 分 10 秒</td>
+                    <td><button class="button icon" type="button">刷</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="identity"><div class="avatar blue">科</div><div class="identity-text"><strong>科技圆桌</strong><span>552210</span></div></div></td>
+                    <td><span class="tag loop">轮播</span></td>
+                    <td>AI 工具夜话回放</td>
+                    <td>科技</td>
+                    <td><span class="num">2.8万</span></td>
+                    <td>2 分 24 秒</td>
+                    <td><button class="button icon" type="button">停</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="identity"><div class="avatar amber">音</div><div class="identity-text"><strong>音乐区夜场</strong><span>980011</span></div></div></td>
+                    <td><span class="tag off">未开播</span></td>
+                    <td>睡前歌单</td>
+                    <td>音乐</td>
+                    <td><span class="num">-</span></td>
+                    <td>3 分 08 秒</td>
+                    <td><button class="button icon" type="button">刷</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="identity"><div class="avatar">游</div><div class="identity-text"><strong>单机游戏观察</strong><span>661210</span></div></div></td>
+                    <td><span class="tag error">异常</span></td>
+                    <td>接口返回 -352</td>
+                    <td>单机游戏</td>
+                    <td><span class="num">-</span></td>
+                    <td>退避 15 分</td>
+                    <td><button class="button icon" type="button">查</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <aside class="panel side-panel">
+              <div class="section-heading">
+                <div>
+                  <h4>房间详情</h4>
+                  <p>原神官方直播间</p>
+                </div>
+                <span class="tag live">直播中</span>
+              </div>
+              <div class="side-cover">
+                <span class="cover-caption">当前关键帧</span>
+              </div>
+              <div class="room-stats">
+                <div class="stat"><span>在线/热度</span><strong>84.2万</strong></div>
+                <div class="stat"><span>开播时长</span><strong>01:18</strong></div>
+                <div class="stat"><span>采集间隔</span><strong>300 秒</strong></div>
+                <div class="stat"><span>最后成功</span><strong>01:42</strong></div>
+              </div>
+              <div class="mini-chart" aria-label="近 24 小时迷你趋势">
+                <div class="mini-bars">
+                  <span style="height: 28%"></span>
+                  <span style="height: 46%"></span>
+                  <span style="height: 40%"></span>
+                  <span style="height: 64%"></span>
+                  <span style="height: 72%"></span>
+                  <span style="height: 58%"></span>
+                  <span style="height: 86%; background: var(--bili)"></span>
+                </div>
+              </div>
+              <div class="timeline">
+                <div class="event"><time>01:32</time><div><strong>开播</strong><span>状态从未开播变为直播中。</span></div></div>
+                <div class="event"><time>01:20</time><div><strong>标题更新</strong><span>前瞻节目标题更新。</span></div></div>
+                <div class="event"><time>00:58</time><div><strong>在线上涨</strong><span>10 分钟内上涨 8.1%。</span></div></div>
+              </div>
+            </aside>
+          </section>
+        </div>
+      </section>
+
+      <section class="variant" id="variant-3">
+        <div class="variant-caption">
+          <div>
+            <h2>方案三：发现与监控一体页</h2>
+            <p>把公开推荐和分区字典做成低频发现入口，用户挑选候选房间后再纳入监控。</p>
+          </div>
+          <span class="tag warn">二阶段功能</span>
+        </div>
+
+        <div class="app-canvas">
+          <div class="page-header">
+            <div>
+              <h3>B站直播间监控</h3>
+              <p>从公开推荐发现样本，加入后使用低风控状态接口轮询。</p>
+            </div>
+            <div class="header-tools">
+              <button class="button" type="button">刷新推荐</button>
+              <button class="button primary" type="button">批量加入</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="tabs">
+              <span>我的监控</span>
+              <span class="active">直播发现</span>
+              <span>分区字典</span>
+            </div>
+
+            <section class="discovery-layout">
+              <aside>
+                <div class="section-heading">
+                  <div>
+                    <h4>筛选</h4>
+                    <p>推荐结果低频缓存。</p>
+                  </div>
+                </div>
+                <div class="filter-list">
+                  <div class="filter-row active"><span>全部分区</span><strong>128</strong></div>
+                  <div class="filter-row"><span>网游</span><strong>32</strong></div>
+                  <div class="filter-row"><span>手游</span><strong>28</strong></div>
+                  <div class="filter-row"><span>虚拟主播</span><strong>21</strong></div>
+                  <div class="filter-row"><span>知识</span><strong>14</strong></div>
+                  <div class="filter-row"><span>音乐</span><strong>11</strong></div>
+                </div>
+              </aside>
+
+              <section>
+                <div class="section-heading">
+                  <div>
+                    <h4>推荐直播间</h4>
+                    <p>仅展示本次公开推荐结果，加入监控后再入库。</p>
+                  </div>
+                  <span class="pill">缓存 5 分钟</span>
+                </div>
+                <div class="recommend-grid">
+                  <article class="rec-card">
+                    <div class="thumb"><span class="tag live">LIVE</span></div>
+                    <div class="rec-body">
+                      <strong>多人联机新赛季，今晚冲分观察</strong>
+                      <div class="rec-meta"><span>网游 · 7.6万</span><span>房间 8012</span></div>
+                      <button class="button primary" type="button">加入监控</button>
+                    </div>
+                  </article>
+                  <article class="rec-card">
+                    <div class="thumb blue"><span class="tag live">LIVE</span></div>
+                    <div class="rec-body">
+                      <strong>科技圆桌：本周开发工具更新</strong>
+                      <div class="rec-meta"><span>知识 · 2.1万</span><span>房间 552210</span></div>
+                      <button class="button" type="button">加入候选</button>
+                    </div>
+                  </article>
+                  <article class="rec-card">
+                    <div class="thumb green"><span class="tag live">LIVE</span></div>
+                    <div class="rec-body">
+                      <strong>虚拟主播杂谈，读评论和点歌</strong>
+                      <div class="rec-meta"><span>虚拟 · 5.4万</span><span>房间 90177</span></div>
+                      <button class="button" type="button">加入候选</button>
+                    </div>
+                  </article>
+                  <article class="rec-card">
+                    <div class="thumb blue"><span class="tag loop">轮播</span></div>
+                    <div class="rec-body">
+                      <strong>公开课回放：数据可视化实践</strong>
+                      <div class="rec-meta"><span>学习 · 1.2万</span><span>房间 33218</span></div>
+                      <button class="button" type="button">加入候选</button>
+                    </div>
+                  </article>
+                  <article class="rec-card">
+                    <div class="thumb"><span class="tag live">LIVE</span></div>
+                    <div class="rec-body">
+                      <strong>手游新角色池抽取与攻略演示</strong>
+                      <div class="rec-meta"><span>手游 · 9.8万</span><span>房间 7734200</span></div>
+                      <button class="button" type="button">已监控</button>
+                    </div>
+                  </article>
+                  <article class="rec-card">
+                    <div class="thumb green"><span class="tag live">LIVE</span></div>
+                    <div class="rec-body">
+                      <strong>音乐区夜场，经典曲目复盘</strong>
+                      <div class="rec-meta"><span>音乐 · 8200</span><span>房间 980011</span></div>
+                      <button class="button" type="button">加入候选</button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="basket-panel">
+                <div class="section-heading">
+                  <div>
+                    <h4>候选篮</h4>
+                    <p>已选择 5 个房间。</p>
+                  </div>
+                </div>
+                <div class="basket-list">
+                  <div class="basket-item"><div><strong>科技圆桌</strong><span>房间 552210</span></div><span class="tag loop">候选</span></div>
+                  <div class="basket-item"><div><strong>虚拟主播杂谈</strong><span>房间 90177</span></div><span class="tag loop">候选</span></div>
+                  <div class="basket-item"><div><strong>音乐区夜场</strong><span>房间 980011</span></div><span class="tag loop">候选</span></div>
+                </div>
+                <div class="form-row">
+                  <input class="field short-field" value="600" aria-label="批量间隔秒" />
+                  <button class="button primary" type="button">批量加入</button>
+                </div>
+                <p style="margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5">推荐结果不长期保存，只有加入监控后才生成监控记录和快照。</p>
+              </aside>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

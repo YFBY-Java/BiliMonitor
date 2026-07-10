@@ -1,0 +1,37 @@
+# Java / Maven
+backend/target/
+backend/.mvn/wrapper/apache-maven-*/
+backend/.mvn/wrapper/apache-maven-*-bin.zip
+backend/.mvn/wrapper/_extract/
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Env
+.env
+.env.local
+.env.*.local
+*.local
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+
+# Local runtime data / tools / logs
+.dev-data/
+.dev-tools/
+**/.tmp-chrome*/
+**/.tmp-edge*/
+*.log
+*.err.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store

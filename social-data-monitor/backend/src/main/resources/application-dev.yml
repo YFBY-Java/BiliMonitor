@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${SOCIAL_MONITOR_DB_URL}
+    username: ${SOCIAL_MONITOR_DB_USERNAME}
+    password: ${SOCIAL_MONITOR_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+logging:
+  level:
+    com.socialmonitor: INFO

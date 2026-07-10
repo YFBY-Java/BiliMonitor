@@ -1,0 +1,1474 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>指定用户多平台监控三版样式稿</title>
+  <style>
+    :root {
+      color: #172033;
+      background: #eef2f6;
+      font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #eef2f6;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .document-header {
+      max-width: 1440px;
+      margin: 0 auto 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-end;
+    }
+
+    .document-header h1 {
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .document-header p {
+      margin-top: 6px;
+      color: #667085;
+      line-height: 1.55;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      color: #475467;
+      font-size: 12px;
+    }
+
+    .legend span {
+      padding: 6px 9px;
+      border: 1px solid #d9e0ea;
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    .mockup-wrap {
+      max-width: 1440px;
+      margin: 0 auto 28px;
+    }
+
+    .mockup-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 10px;
+    }
+
+    .mockup-title h2 {
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .mockup-title p {
+      color: #667085;
+      font-size: 13px;
+    }
+
+    .frame {
+      display: grid;
+      grid-template-columns: 216px minmax(0, 1fr);
+      min-height: 820px;
+      overflow: hidden;
+      border: 1px solid #d3dce8;
+      border-radius: 8px;
+      box-shadow: 0 22px 54px rgba(29, 41, 57, 0.12);
+    }
+
+    .side {
+      padding: 18px 14px;
+      border-right: 1px solid;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      margin-bottom: 22px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      color: #ffffff;
+      font-weight: 900;
+    }
+
+    .brand strong,
+    .brand span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .brand span {
+      margin-top: 2px;
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-item {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      height: 38px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .nav-icon {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .topbar h3 {
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .topbar p {
+      margin-top: 4px;
+      color: inherit;
+      opacity: 0.65;
+      line-height: 1.45;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .button,
+    .tool {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      height: 34px;
+      padding: 0 11px;
+      border: 1px solid;
+      border-radius: 8px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .icon {
+      width: 15px;
+      height: 15px;
+      display: inline-block;
+    }
+
+    .panel,
+    .stat,
+    .tile,
+    .row,
+    .chart-card,
+    .timeline-row,
+    .metric-cell {
+      border-radius: 8px;
+    }
+
+    .subject-hero {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.25fr) minmax(420px, 2fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .profile-panel {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      min-width: 0;
+      padding: 16px;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 74px;
+      height: 74px;
+      overflow: hidden;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 900;
+    }
+
+    .profile-copy {
+      min-width: 0;
+    }
+
+    .profile-copy h3 {
+      overflow: hidden;
+      font-size: 24px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .profile-copy p {
+      margin-top: 5px;
+      color: inherit;
+      opacity: 0.66;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      padding: 5px 8px;
+      border: 1px solid;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid;
+    }
+
+    .stat span {
+      display: block;
+      font-size: 12px;
+      opacity: 0.68;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      overflow: hidden;
+      font-size: 23px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.45fr) minmax(300px, 0.9fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panel-head h3 {
+      font-size: 17px;
+    }
+
+    .panel-head span {
+      color: inherit;
+      font-size: 12px;
+      opacity: 0.65;
+      white-space: nowrap;
+    }
+
+    .account-list,
+    .timeline,
+    .content-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .account-row,
+    .timeline-row,
+    .content-row {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid;
+      border-radius: 8px;
+    }
+
+    .account-row {
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    .platform-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .row-copy {
+      min-width: 0;
+    }
+
+    .row-copy strong,
+    .row-copy span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-copy span {
+      margin-top: 2px;
+      font-size: 12px;
+      opacity: 0.66;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .metric-matrix {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .metric-cell {
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid;
+    }
+
+    .metric-cell span {
+      display: block;
+      font-size: 11px;
+      opacity: 0.65;
+    }
+
+    .metric-cell strong {
+      display: block;
+      margin-top: 5px;
+      overflow: hidden;
+      font-size: 18px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chart-card {
+      padding: 12px;
+      border: 1px solid;
+    }
+
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+
+    .chart {
+      width: 100%;
+      height: 190px;
+    }
+
+    .chart.tall {
+      height: 270px;
+    }
+
+    .bars {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 68px minmax(0, 1fr) 56px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .bar-track {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+    }
+
+    .bar-track i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .timeline-row {
+      grid-template-columns: 92px minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .timeline-row time {
+      font-size: 12px;
+      opacity: 0.68;
+    }
+
+    .timeline-row strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timeline-row span {
+      display: block;
+      margin-top: 3px;
+      font-size: 12px;
+      opacity: 0.68;
+    }
+
+    .health-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 5px;
+      margin-top: 12px;
+    }
+
+    .health-strip i {
+      height: 24px;
+      border-radius: 5px;
+    }
+
+    .matrix-board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .heat-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .heat-grid i {
+      aspect-ratio: 1;
+      border-radius: 5px;
+    }
+
+    .style-a .frame {
+      background: #f6f8fb;
+    }
+
+    .style-a .side,
+    .style-a .main {
+      background: #f6f8fb;
+    }
+
+    .style-a .side {
+      border-color: #e1e7f0;
+      background: #ffffff;
+    }
+
+    .style-a .brand-mark {
+      background: #246bfe;
+    }
+
+    .style-a .brand span,
+    .style-a .nav-item {
+      color: #667085;
+    }
+
+    .style-a .nav-item.active {
+      color: #155eef;
+      background: #edf4ff;
+    }
+
+    .style-a .button.primary {
+      color: #ffffff;
+      border-color: #246bfe;
+      background: #246bfe;
+    }
+
+    .style-a .tool,
+    .style-a .button:not(.primary),
+    .style-a .panel,
+    .style-a .profile-panel,
+    .style-a .stat,
+    .style-a .account-row,
+    .style-a .metric-cell,
+    .style-a .chart-card,
+    .style-a .timeline-row,
+    .style-a .content-row {
+      border-color: #dde5ef;
+      background: #ffffff;
+    }
+
+    .style-a .chip {
+      color: #175cd3;
+      border-color: #c7d7fe;
+      background: #eef4ff;
+    }
+
+    .style-a .avatar {
+      background: linear-gradient(135deg, #246bfe, #12a878);
+    }
+
+    .style-a .status.ok {
+      color: #067647;
+      background: #dcfae6;
+    }
+
+    .style-a .status.warn {
+      color: #b54708;
+      background: #fff4d7;
+    }
+
+    .style-a .status.bad {
+      color: #b42318;
+      background: #fee4e2;
+    }
+
+    .style-a .bili {
+      background: #00a1d6;
+    }
+
+    .style-a .douyin {
+      background: #101828;
+    }
+
+    .style-a .weibo {
+      background: #f04438;
+    }
+
+    .style-a .xhs {
+      background: #e11d48;
+    }
+
+    .style-a .bar-track,
+    .style-a .health-strip i {
+      background: #e8edf5;
+    }
+
+    .style-a .health-strip i:nth-child(1),
+    .style-a .health-strip i:nth-child(2),
+    .style-a .health-strip i:nth-child(3),
+    .style-a .health-strip i:nth-child(5),
+    .style-a .health-strip i:nth-child(6) {
+      background: #12a878;
+    }
+
+    .style-a .health-strip i:nth-child(4) {
+      background: #f6b73c;
+    }
+
+    .style-a .health-strip i:nth-child(7) {
+      background: #ff6b6b;
+    }
+
+    .style-b .frame {
+      background: #f8faf9;
+    }
+
+    .style-b .side {
+      color: #e6fff6;
+      border-color: #23463d;
+      background: #173b33;
+    }
+
+    .style-b .brand-mark {
+      color: #173b33;
+      background: #8ef2d0;
+    }
+
+    .style-b .brand span,
+    .style-b .nav-item {
+      color: #bde6db;
+    }
+
+    .style-b .nav-item.active {
+      color: #173b33;
+      background: #8ef2d0;
+    }
+
+    .style-b .main {
+      background: #f8faf9;
+    }
+
+    .style-b .button.primary {
+      color: #173b33;
+      border-color: #8ef2d0;
+      background: #8ef2d0;
+    }
+
+    .style-b .tool,
+    .style-b .button:not(.primary),
+    .style-b .panel,
+    .style-b .profile-panel,
+    .style-b .stat,
+    .style-b .account-row,
+    .style-b .metric-cell,
+    .style-b .chart-card,
+    .style-b .timeline-row,
+    .style-b .content-row {
+      border-color: #d9e3de;
+      background: #ffffff;
+    }
+
+    .style-b .profile-panel {
+      background: #173b33;
+      color: #ffffff;
+    }
+
+    .style-b .avatar {
+      color: #173b33;
+      background: #8ef2d0;
+    }
+
+    .style-b .chip {
+      color: #173b33;
+      border-color: #aadfce;
+      background: #e9fbf4;
+    }
+
+    .style-b .status.ok {
+      color: #0f6d51;
+      background: #d8f8ed;
+    }
+
+    .style-b .status.warn {
+      color: #8a5700;
+      background: #fff0bf;
+    }
+
+    .style-b .status.bad {
+      color: #a11b3b;
+      background: #ffe1e9;
+    }
+
+    .style-b .bili {
+      background: #1585b5;
+    }
+
+    .style-b .douyin {
+      background: #22292f;
+    }
+
+    .style-b .weibo {
+      background: #d55b3d;
+    }
+
+    .style-b .xhs {
+      background: #b8325e;
+    }
+
+    .style-b .bar-track,
+    .style-b .health-strip i {
+      background: #e3ebe7;
+    }
+
+    .style-b .health-strip i:nth-child(1),
+    .style-b .health-strip i:nth-child(2),
+    .style-b .health-strip i:nth-child(5),
+    .style-b .health-strip i:nth-child(6) {
+      background: #20b486;
+    }
+
+    .style-b .health-strip i:nth-child(3),
+    .style-b .health-strip i:nth-child(4) {
+      background: #d7a51f;
+    }
+
+    .style-b .health-strip i:nth-child(7) {
+      background: #c84667;
+    }
+
+    .style-c .frame {
+      color: #eff7f4;
+      border-color: #2f3637;
+      background: #101313;
+      box-shadow: 0 24px 58px rgba(0, 0, 0, 0.34);
+    }
+
+    .style-c .side {
+      color: #d9e7e3;
+      border-color: #2d3838;
+      background: #161a1a;
+    }
+
+    .style-c .main {
+      background: #101313;
+    }
+
+    .style-c .brand-mark {
+      background: #19d3a2;
+      color: #07100e;
+    }
+
+    .style-c .brand span,
+    .style-c .nav-item {
+      color: #91a4a0;
+    }
+
+    .style-c .nav-item.active {
+      color: #19d3a2;
+      background: #1f2a28;
+    }
+
+    .style-c .topbar p,
+    .style-c .panel-head span {
+      color: #94a3a0;
+      opacity: 1;
+    }
+
+    .style-c .button.primary {
+      color: #07100e;
+      border-color: #19d3a2;
+      background: #19d3a2;
+    }
+
+    .style-c .tool,
+    .style-c .button:not(.primary),
+    .style-c .panel,
+    .style-c .profile-panel,
+    .style-c .stat,
+    .style-c .account-row,
+    .style-c .metric-cell,
+    .style-c .chart-card,
+    .style-c .timeline-row,
+    .style-c .content-row {
+      border-color: #2d3838;
+      background: #171c1c;
+    }
+
+    .style-c .profile-panel {
+      background: #1d2423;
+    }
+
+    .style-c .avatar {
+      color: #07100e;
+      background: linear-gradient(135deg, #19d3a2, #f6c15a);
+    }
+
+    .style-c .chip {
+      color: #d9e7e3;
+      border-color: #33413f;
+      background: #202928;
+    }
+
+    .style-c .status.ok {
+      color: #07100e;
+      background: #19d3a2;
+    }
+
+    .style-c .status.warn {
+      color: #171000;
+      background: #f6c15a;
+    }
+
+    .style-c .status.bad {
+      color: #fff8f8;
+      background: #e0556d;
+    }
+
+    .style-c .bili {
+      background: #23a9db;
+    }
+
+    .style-c .douyin {
+      background: #374141;
+    }
+
+    .style-c .weibo {
+      background: #e7684f;
+    }
+
+    .style-c .xhs {
+      background: #db3f73;
+    }
+
+    .style-c .bar-track,
+    .style-c .health-strip i {
+      background: #293231;
+    }
+
+    .style-c .health-strip i:nth-child(1),
+    .style-c .health-strip i:nth-child(2),
+    .style-c .health-strip i:nth-child(3),
+    .style-c .health-strip i:nth-child(5) {
+      background: #19d3a2;
+    }
+
+    .style-c .health-strip i:nth-child(4),
+    .style-c .health-strip i:nth-child(6) {
+      background: #f6c15a;
+    }
+
+    .style-c .health-strip i:nth-child(7) {
+      background: #e0556d;
+    }
+
+    .spark {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .axis {
+      stroke-width: 1;
+    }
+
+    .style-a .axis,
+    .style-b .axis {
+      stroke: #e4e9f1;
+    }
+
+    .style-c .axis {
+      stroke: #2d3838;
+    }
+
+    .style-a .spark.primary {
+      stroke: #246bfe;
+    }
+
+    .style-a .spark.secondary {
+      stroke: #12a878;
+    }
+
+    .style-a .spark.third {
+      stroke: #ec5fa8;
+    }
+
+    .style-b .spark.primary {
+      stroke: #1d8f6f;
+    }
+
+    .style-b .spark.secondary {
+      stroke: #d7a51f;
+    }
+
+    .style-b .spark.third {
+      stroke: #9367d8;
+    }
+
+    .style-c .spark.primary {
+      stroke: #19d3a2;
+    }
+
+    .style-c .spark.secondary {
+      stroke: #f6c15a;
+    }
+
+    .style-c .spark.third {
+      stroke: #db3f73;
+    }
+
+    .style-a .bar-track i:nth-child(1),
+    .a-blue {
+      background: #246bfe;
+    }
+
+    .a-green {
+      background: #12a878;
+    }
+
+    .a-pink {
+      background: #ec5fa8;
+    }
+
+    .b-teal {
+      background: #20b486;
+    }
+
+    .b-gold {
+      background: #d7a51f;
+    }
+
+    .b-violet {
+      background: #9367d8;
+    }
+
+    .c-teal {
+      background: #19d3a2;
+    }
+
+    .c-gold {
+      background: #f6c15a;
+    }
+
+    .c-pink {
+      background: #db3f73;
+    }
+
+    .style-b .subject-hero {
+      grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.8fr);
+    }
+
+    .style-b .layout-grid {
+      grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.6fr) minmax(300px, 0.8fr);
+    }
+
+    .style-b .metric-matrix {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .style-c .subject-hero {
+      grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.8fr);
+    }
+
+    .style-c .layout-grid {
+      grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr) minmax(340px, 0.95fr);
+    }
+
+    .style-c .metric-matrix {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (max-width: 1120px) {
+      body {
+        padding: 14px;
+      }
+
+      .document-header,
+      .mockup-title,
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .legend,
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      .frame {
+        grid-template-columns: 72px minmax(0, 1fr);
+      }
+
+      .brand > div,
+      .nav-item span:last-child {
+        display: none;
+      }
+
+      .side {
+        padding: 14px 10px;
+      }
+
+      .nav-item {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 0;
+      }
+
+      .subject-hero,
+      .style-b .subject-hero,
+      .style-c .subject-hero,
+      .layout-grid,
+      .style-b .layout-grid,
+      .style-c .layout-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .main {
+        padding: 12px;
+      }
+
+      .frame {
+        min-height: auto;
+      }
+
+      .stats,
+      .metric-matrix,
+      .style-b .metric-matrix,
+      .style-c .metric-matrix,
+      .matrix-board {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-panel {
+        grid-template-columns: 56px minmax(0, 1fr);
+      }
+
+      .avatar {
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="document-header">
+    <div>
+      <h1>指定用户多平台监控 UI 三版样式稿</h1>
+      <p>三版使用同一业务信息架构，差异集中在视觉密度、色彩气质、趋势图占比和事件告警权重。</p>
+    </div>
+    <div class="legend">
+      <span>A 首版推荐</span>
+      <span>B 研究分析</span>
+      <span>C 深色值守</span>
+    </div>
+  </header>
+
+  <section class="mockup-wrap style-a">
+    <div class="mockup-title">
+      <h2>A. 清爽运营台</h2>
+      <p>延续当前项目浅色后台风格，适合日常监控和第一版落地。</p>
+    </div>
+    <div class="frame">
+      <aside class="side">
+        <div class="brand">
+          <div class="brand-mark">SD</div>
+          <div>
+            <strong>Social Monitor</strong>
+            <span>用户监控后台</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="nav-item active" href="#"><span class="nav-icon">◎</span><span>用户监控</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">▤</span><span>平台账号</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">⌁</span><span>趋势分析</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">◇</span><span>事件中心</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">⚙</span><span>系统设置</span></a>
+        </nav>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <div>
+            <h3>指定用户详情</h3>
+            <p>跨平台追踪账号资料、粉丝增长、内容互动、直播状态和采集健康。</p>
+          </div>
+          <div class="toolbar">
+            <span class="tool">近 7 天</span>
+            <span class="tool">平台：全部</span>
+            <span class="button">刷新</span>
+            <span class="button primary">添加平台账号</span>
+          </div>
+        </div>
+
+        <section class="subject-hero">
+          <article class="profile-panel">
+            <div class="avatar">林</div>
+            <div class="profile-copy">
+              <h3>林觉</h3>
+              <p>游戏 / 直播 / 内容创作者 · 4 个平台已绑定</p>
+              <div class="chips">
+                <span class="chip">重点观察</span>
+                <span class="chip">健康 92</span>
+                <span class="chip">最近成功 3 分钟前</span>
+              </div>
+            </div>
+          </article>
+          <div class="stats">
+            <article class="stat"><span>全平台粉丝</span><strong>428.6万</strong></article>
+            <article class="stat"><span>24h 净增</span><strong>+1.8万</strong></article>
+            <article class="stat"><span>互动率</span><strong>7.4%</strong></article>
+            <article class="stat"><span>今日事件</span><strong>12</strong></article>
+          </div>
+        </section>
+
+        <section class="layout-grid">
+          <article class="panel">
+            <div class="panel-head"><h3>平台账号</h3><span>4/5 已绑定</span></div>
+            <div class="account-list">
+              <div class="account-row">
+                <div class="platform-mark bili">B</div>
+                <div class="row-copy"><strong>Bilibili · 林觉Official</strong><span>粉丝 128.4万 · 直播中</span></div>
+                <span class="status ok">正常</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark douyin">抖</div>
+                <div class="row-copy"><strong>抖音 · 林觉</strong><span>粉丝 202.1万 · 2 小时前成功</span></div>
+                <span class="status warn">变旧</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark weibo">微</div>
+                <div class="row-copy"><strong>微博 · 林觉同学</strong><span>粉丝 80.7万 · 今日 3 条内容</span></div>
+                <span class="status ok">正常</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark xhs">红</div>
+                <div class="row-copy"><strong>小红书 · 林觉日常</strong><span>粉丝 17.4万 · 采集退避</span></div>
+                <span class="status bad">异常</span>
+              </div>
+            </div>
+            <div class="health-strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head"><h3>指标矩阵</h3><span>按平台聚合</span></div>
+            <div class="metric-matrix">
+              <div class="metric-cell"><span>B站粉丝</span><strong>128.4万</strong></div>
+              <div class="metric-cell"><span>B站在线</span><strong>3.2万</strong></div>
+              <div class="metric-cell"><span>抖音播放</span><strong>281万</strong></div>
+              <div class="metric-cell"><span>微博互动</span><strong>12.8万</strong></div>
+              <div class="metric-cell"><span>内容发布</span><strong>12</strong></div>
+              <div class="metric-cell"><span>评论增长</span><strong>+8,420</strong></div>
+              <div class="metric-cell"><span>异常接口</span><strong>1</strong></div>
+              <div class="metric-cell"><span>AI 观察</span><strong>3 条</strong></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head"><strong>粉丝与互动趋势</strong><span>近 7 天</span></div>
+              <svg class="chart" viewBox="0 0 760 190" role="img" aria-label="趋势图">
+                <path class="axis" d="M20 158 H740 M20 112 H740 M20 66 H740 M20 20 H740" />
+                <path class="spark primary" d="M24 145 C80 136 116 128 160 120 S248 93 300 92 S386 118 434 86 S526 54 588 58 S682 34 736 26" />
+                <path class="spark secondary" d="M24 160 C92 150 122 142 180 138 S280 124 336 116 S430 98 488 94 S598 82 736 70" />
+                <path class="spark third" d="M24 138 C98 142 144 108 196 112 S302 132 358 104 S454 74 506 82 S622 118 736 96" />
+              </svg>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head"><h3>事件流</h3><span>实时归并</span></div>
+            <div class="timeline">
+              <div class="timeline-row"><time>刚刚</time><div><strong>B站直播热度突破 3 万</strong><span>在线/热度较上次 +12.8%</span></div></div>
+              <div class="timeline-row"><time>12 分钟前</time><div><strong>微博发布新内容</strong><span>评论增长速度高于 7 日均值</span></div></div>
+              <div class="timeline-row"><time>38 分钟前</time><div><strong>小红书接口退避</strong><span>下次尝试 14:20</span></div></div>
+              <div class="timeline-row"><time>2 小时前</time><div><strong>抖音粉丝快照成功</strong><span>24h 净增 +9,800</span></div></div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <section class="mockup-wrap style-b">
+    <div class="mockup-title">
+      <h2>B. 研究分析桌面</h2>
+      <p>强调指标矩阵、内容证据和复盘分析，适合运营研究人员长时间对比。</p>
+    </div>
+    <div class="frame">
+      <aside class="side">
+        <div class="brand">
+          <div class="brand-mark">SM</div>
+          <div>
+            <strong>Monitor Lab</strong>
+            <span>分析工作台</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="nav-item active" href="#"><span class="nav-icon">◎</span><span>对象研究</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">▦</span><span>指标矩阵</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">≋</span><span>内容证据</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">◇</span><span>身份合并</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">⚙</span><span>规则配置</span></a>
+        </nav>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <div>
+            <h3>用户研究档案</h3>
+            <p>把跨平台账号、内容样本和指标变化放在同一张研究桌面里。</p>
+          </div>
+          <div class="toolbar">
+            <span class="tool">时间：30 天</span>
+            <span class="tool">指标：增长 + 互动</span>
+            <span class="button">导出快照</span>
+            <span class="button primary">生成日报</span>
+          </div>
+        </div>
+
+        <section class="subject-hero">
+          <article class="profile-panel">
+            <div class="avatar">林</div>
+            <div class="profile-copy">
+              <h3>林觉</h3>
+              <p>跨平台账号置信度 0.94 · 人工确认</p>
+              <div class="chips">
+                <span class="chip">内容节奏上升</span>
+                <span class="chip">直播带动增长</span>
+                <span class="chip">异常 1 项</span>
+              </div>
+            </div>
+          </article>
+          <div class="stats">
+            <article class="stat"><span>增长贡献平台</span><strong>B站 42%</strong></article>
+            <article class="stat"><span>爆发内容</span><strong>3 条</strong></article>
+            <article class="stat"><span>评论情绪</span><strong>偏正向</strong></article>
+            <article class="stat"><span>AI 结论</span><strong>4 条</strong></article>
+          </div>
+        </section>
+
+        <section class="layout-grid">
+          <article class="panel">
+            <div class="panel-head"><h3>账号证据</h3><span>身份聚合</span></div>
+            <div class="account-list">
+              <div class="account-row">
+                <div class="platform-mark bili">B</div>
+                <div class="row-copy"><strong>B站主页匹配</strong><span>头像相似 · 昵称一致 · 已确认</span></div>
+                <span class="status ok">0.98</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark douyin">抖</div>
+                <div class="row-copy"><strong>抖音主页匹配</strong><span>简介链接命中 · 人工确认</span></div>
+                <span class="status ok">0.95</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark weibo">微</div>
+                <div class="row-copy"><strong>微博主页匹配</strong><span>认证名称接近 · 待复核</span></div>
+                <span class="status warn">0.82</span>
+              </div>
+            </div>
+            <div class="bars">
+              <div class="bar-row"><span>B站</span><div class="bar-track"><i class="b-teal" style="width:82%"></i></div><strong>42%</strong></div>
+              <div class="bar-row"><span>抖音</span><div class="bar-track"><i class="b-gold" style="width:68%"></i></div><strong>31%</strong></div>
+              <div class="bar-row"><span>微博</span><div class="bar-track"><i class="b-violet" style="width:44%"></i></div><strong>18%</strong></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head"><h3>分析矩阵</h3><span>平台 x 维度</span></div>
+            <div class="metric-matrix">
+              <div class="metric-cell"><span>粉丝净增</span><strong>+18,204</strong></div>
+              <div class="metric-cell"><span>互动净增</span><strong>+64,920</strong></div>
+              <div class="metric-cell"><span>发布频率</span><strong>1.7/日</strong></div>
+              <div class="metric-cell"><span>直播时长</span><strong>4h 20m</strong></div>
+              <div class="metric-cell"><span>内容峰值</span><strong>281万</strong></div>
+              <div class="metric-cell"><span>采集完整性</span><strong>91%</strong></div>
+            </div>
+            <div class="matrix-board">
+              <div class="chart-card">
+                <div class="chart-head"><strong>平台贡献</strong><span>堆叠</span></div>
+                <svg class="chart" viewBox="0 0 360 190">
+                  <path class="axis" d="M20 158 H340 M20 112 H340 M20 66 H340 M20 20 H340" />
+                  <path class="spark primary" d="M26 150 C70 130 100 134 132 114 S200 80 236 78 S296 52 336 40" />
+                  <path class="spark secondary" d="M26 162 C82 146 110 126 152 126 S220 104 256 94 S306 86 336 70" />
+                </svg>
+              </div>
+              <div class="chart-card">
+                <div class="chart-head"><strong>活跃热力</strong><span>小时</span></div>
+                <div class="heat-grid">
+                  <i class="b-teal"></i><i class="b-gold"></i><i></i><i class="b-teal"></i><i></i><i class="b-violet"></i><i class="b-gold"></i><i></i>
+                  <i></i><i class="b-teal"></i><i class="b-teal"></i><i class="b-gold"></i><i></i><i></i><i class="b-violet"></i><i class="b-teal"></i>
+                  <i class="b-gold"></i><i></i><i></i><i class="b-teal"></i><i class="b-teal"></i><i class="b-gold"></i><i></i><i class="b-violet"></i>
+                  <i></i><i class="b-teal"></i><i class="b-gold"></i><i></i><i class="b-teal"></i><i></i><i class="b-gold"></i><i class="b-teal"></i>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head"><h3>内容证据</h3><span>Top 事件</span></div>
+            <div class="content-list">
+              <div class="content-row"><div class="row-copy"><strong>直播切片带动 B站粉丝峰值</strong><span>播放 81.2万 · 评论 +3,420</span></div></div>
+              <div class="content-row"><div class="row-copy"><strong>抖音短视频进入高互动区间</strong><span>点赞 12.4万 · 转发 1.1万</span></div></div>
+              <div class="content-row"><div class="row-copy"><strong>微博热评集中在 18:00 后</strong><span>情绪偏正向 · 需持续观察</span></div></div>
+              <div class="content-row"><div class="row-copy"><strong>小红书采集异常不参与结论</strong><span>接口退避中 · 数据新鲜度不足</span></div></div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <section class="mockup-wrap style-c">
+    <div class="mockup-title">
+      <h2>C. 深色指挥台</h2>
+      <p>强调状态、异常和大屏值守，适合作为深色主题或监控墙模式。</p>
+    </div>
+    <div class="frame">
+      <aside class="side">
+        <div class="brand">
+          <div class="brand-mark">CT</div>
+          <div>
+            <strong>Control Tower</strong>
+            <span>实时监控</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="nav-item active" href="#"><span class="nav-icon">◎</span><span>实时总览</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">▥</span><span>告警队列</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">⌁</span><span>趋势墙</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">◇</span><span>事件流</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">⚙</span><span>采集配置</span></a>
+        </nav>
+      </aside>
+      <main class="main">
+        <div class="topbar">
+          <div>
+            <h3>跨平台实时监控</h3>
+            <p>突出直播、异常退避、采集新鲜度和关键增长波动。</p>
+          </div>
+          <div class="toolbar">
+            <span class="tool">自动刷新 30s</span>
+            <span class="tool">告警：3</span>
+            <span class="button">静音</span>
+            <span class="button primary">立即巡检</span>
+          </div>
+        </div>
+
+        <section class="subject-hero">
+          <article class="profile-panel">
+            <div class="avatar">林</div>
+            <div class="profile-copy">
+              <h3>林觉</h3>
+              <p>B站直播中 · 小红书退避 · 微博正常 · 抖音数据变旧</p>
+              <div class="chips">
+                <span class="chip">LIVE</span>
+                <span class="chip">健康 78</span>
+                <span class="chip">需要复核 1</span>
+              </div>
+            </div>
+          </article>
+          <div class="stats">
+            <article class="stat"><span>当前直播热度</span><strong>3.2万</strong></article>
+            <article class="stat"><span>异常账号</span><strong>1</strong></article>
+            <article class="stat"><span>数据新鲜度</span><strong>84%</strong></article>
+            <article class="stat"><span>增长脉冲</span><strong>+12.8%</strong></article>
+          </div>
+        </section>
+
+        <section class="layout-grid">
+          <article class="panel">
+            <div class="panel-head"><h3>平台状态</h3><span>采集心跳</span></div>
+            <div class="account-list">
+              <div class="account-row">
+                <div class="platform-mark bili">B</div>
+                <div class="row-copy"><strong>B站直播</strong><span>在线 3.2万 · 22 秒前</span></div>
+                <span class="status ok">LIVE</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark douyin">抖</div>
+                <div class="row-copy"><strong>抖音账号</strong><span>最后成功 2 小时前</span></div>
+                <span class="status warn">变旧</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark weibo">微</div>
+                <div class="row-copy"><strong>微博账号</strong><span>内容采集正常</span></div>
+                <span class="status ok">正常</span>
+              </div>
+              <div class="account-row">
+                <div class="platform-mark xhs">红</div>
+                <div class="row-copy"><strong>小红书账号</strong><span>RISK_CONTROLLED · 退避中</span></div>
+                <span class="status bad">退避</span>
+              </div>
+            </div>
+            <div class="health-strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head"><h3>趋势墙</h3><span>关键指标</span></div>
+            <div class="metric-matrix">
+              <div class="metric-cell"><span>直播热度</span><strong>+12.8%</strong></div>
+              <div class="metric-cell"><span>粉丝净增</span><strong>+18,204</strong></div>
+              <div class="metric-cell"><span>评论速度</span><strong>2.4x</strong></div>
+              <div class="metric-cell"><span>错误率</span><strong>4.1%</strong></div>
+              <div class="metric-cell"><span>待复核</span><strong>1</strong></div>
+              <div class="metric-cell"><span>AI 摘要</span><strong>已生成</strong></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head"><strong>实时热度与增长</strong><span>最近 6 小时</span></div>
+              <svg class="chart tall" viewBox="0 0 760 270">
+                <path class="axis" d="M20 230 H740 M20 176 H740 M20 122 H740 M20 68 H740 M20 20 H740" />
+                <path class="spark primary" d="M24 220 C76 204 126 198 172 180 S252 112 302 118 S388 144 430 94 S520 42 580 58 S674 78 736 34" />
+                <path class="spark secondary" d="M24 236 C102 228 146 214 210 204 S318 176 366 170 S462 132 526 124 S620 102 736 88" />
+                <path class="spark third" d="M24 198 C88 214 138 162 194 170 S294 204 352 154 S450 112 508 130 S628 180 736 146" />
+              </svg>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head"><h3>告警与事件</h3><span>按严重度</span></div>
+            <div class="timeline">
+              <div class="timeline-row"><time>14:07</time><div><strong>小红书触发退避</strong><span>已停止重试，等待 15 分钟后再试</span></div></div>
+              <div class="timeline-row"><time>14:02</time><div><strong>B站直播热度突增</strong><span>较 10 分钟前 +12.8%</span></div></div>
+              <div class="timeline-row"><time>13:58</time><div><strong>微博内容进入高评论速率</strong><span>评论速度 2.4x</span></div></div>
+              <div class="timeline-row"><time>13:41</time><div><strong>抖音数据变旧</strong><span>最近成功超过 2 小时</span></div></div>
+            </div>
+            <div class="heat-grid">
+              <i class="c-teal"></i><i class="c-gold"></i><i></i><i class="c-teal"></i><i class="c-pink"></i><i class="c-gold"></i><i></i><i class="c-teal"></i>
+              <i></i><i class="c-teal"></i><i class="c-gold"></i><i></i><i class="c-teal"></i><i></i><i class="c-pink"></i><i class="c-gold"></i>
+              <i class="c-gold"></i><i></i><i class="c-teal"></i><i class="c-teal"></i><i></i><i class="c-gold"></i><i class="c-teal"></i><i></i>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </section>
+</body>
+</html>

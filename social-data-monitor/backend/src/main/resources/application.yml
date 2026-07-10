@@ -1,0 +1,113 @@
+spring:
+  config:
+    import:
+      # 以下导入只使用项目内相对路径，兼容从仓库根目录、social-data-monitor/、
+      # social-data-monitor/backend/ 等常见目录启动。
+      - optional:file:social-data-monitor/.env.local[.properties]
+      - optional:file:.env.local[.properties]
+      - optional:file:../.env.local[.properties]
+  application:
+    name: social-data-monitor-backend
+  profiles:
+    active: dev
+  jackson:
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  security:
+    dev-username: ${SOCIAL_MONITOR_SECURITY_DEV_USERNAME:}
+    dev-password: ${SOCIAL_MONITOR_SECURITY_DEV_PASSWORD:}
+  cors:
+    allowed-origins: ${SOCIAL_MONITOR_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  collector:
+    scheduler:
+      enabled: ${SOCIAL_MONITOR_COLLECTOR_SCHEDULER_ENABLED:false}
+      fixed-delay-ms: 30000
+  bilibili:
+    auth:
+      enabled: ${SOCIAL_MONITOR_BILIBILI_AUTH_ENABLED:true}
+      qr-expire-seconds: ${SOCIAL_MONITOR_BILIBILI_AUTH_QR_EXPIRE_SECONDS:180}
+      poll-interval-ms: ${SOCIAL_MONITOR_BILIBILI_AUTH_POLL_INTERVAL_MS:1500}
+      session-cleanup-delay-ms: ${SOCIAL_MONITOR_BILIBILI_AUTH_SESSION_CLEANUP_DELAY_MS:60000}
+      connect-timeout-ms: ${SOCIAL_MONITOR_BILIBILI_AUTH_CONNECT_TIMEOUT_MS:5000}
+      request-timeout-ms: ${SOCIAL_MONITOR_BILIBILI_AUTH_REQUEST_TIMEOUT_MS:10000}
+      refresh-check-interval-hours: ${SOCIAL_MONITOR_BILIBILI_AUTH_REFRESH_CHECK_INTERVAL_HOURS:24}
+      user-agent: ${SOCIAL_MONITOR_BILIBILI_AUTH_USER_AGENT:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36}
+      referer: ${SOCIAL_MONITOR_BILIBILI_AUTH_REFERER:https://www.bilibili.com/}
+      credential-encryption-key: ${SOCIAL_MONITOR_CREDENTIAL_ENCRYPTION_KEY:}
+    follower-monitor:
+      enabled: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_MONITOR_ENABLED:true}
+      storage-enabled: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_STORAGE_ENABLED:true}
+      scheduler-delay-ms: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_SCHEDULER_DELAY_MS:1000}
+      due-batch-size: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_DUE_BATCH_SIZE:10}
+      default-interval-seconds: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_INTERVAL_SECONDS:3600}
+      min-interval-seconds: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_MIN_INTERVAL_SECONDS:1}
+      max-interval-seconds: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_MAX_INTERVAL_SECONDS:2592000}
+      short-interval-warning-seconds: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_SHORT_INTERVAL_WARNING_SECONDS:60}
+      failure-backoff-seconds: ${SOCIAL_MONITOR_BILIBILI_FOLLOWER_FAILURE_BACKOFF_SECONDS:900}
+      request-min-interval-ms: ${SOCIAL_MONITOR_BILIBILI_REQUEST_MIN_INTERVAL_MS:1500}
+    live-monitor:
+      enabled: ${SOCIAL_MONITOR_BILIBILI_LIVE_MONITOR_ENABLED:true}
+      storage-enabled: ${SOCIAL_MONITOR_BILIBILI_LIVE_STORAGE_ENABLED:true}
+      scheduler-delay-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_SCHEDULER_DELAY_MS:1000}
+      due-batch-size: ${SOCIAL_MONITOR_BILIBILI_LIVE_DUE_BATCH_SIZE:20}
+      status-batch-size: ${SOCIAL_MONITOR_BILIBILI_LIVE_STATUS_BATCH_SIZE:30}
+      default-interval-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_INTERVAL_SECONDS:300}
+      min-interval-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_MIN_INTERVAL_SECONDS:1}
+      max-interval-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_MAX_INTERVAL_SECONDS:2592000}
+      short-interval-warning-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_SHORT_INTERVAL_WARNING_SECONDS:120}
+      failure-backoff-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_FAILURE_BACKOFF_SECONDS:900}
+      request-min-interval-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_REQUEST_MIN_INTERVAL_MS:1500}
+      connect-timeout-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_CONNECT_TIMEOUT_MS:5000}
+      read-timeout-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_READ_TIMEOUT_MS:10000}
+      max-attempts: ${SOCIAL_MONITOR_BILIBILI_LIVE_MAX_ATTEMPTS:3}
+      retry-backoff-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_RETRY_BACKOFF_MS:1500}
+      user-agent: ${SOCIAL_MONITOR_BILIBILI_LIVE_USER_AGENT:SocialDataMonitor/0.1 (+low-frequency public Bilibili live monitor)}
+      referer: ${SOCIAL_MONITOR_BILIBILI_LIVE_REFERER:https://live.bilibili.com/}
+      danmaku:
+        enabled: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_ENABLED:true}
+        auto-start-enabled: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_AUTO_START_ENABLED:true}
+        scheduler-delay-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_SCHEDULER_DELAY_MS:5000}
+        max-connections: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_MAX_CONNECTIONS:10}
+        heartbeat-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_HEARTBEAT_SECONDS:30}
+        connect-timeout-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_CONNECT_TIMEOUT_MS:8000}
+        bucket-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_BUCKET_SECONDS:60}
+        recent-message-limit-per-room: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_RECENT_LIMIT:200}
+        listen-probe-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_PROBE_SECONDS:20}
+        protocol-version: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_PROTOCOL_VERSION:3}
+        wbi-cache-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_WBI_CACHE_SECONDS:43200}
+        buvid-cache-seconds: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_BUVID_CACHE_SECONDS:43200}
+        use-login-credential: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_USE_LOGIN_CREDENTIAL:true}
+        web-location: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_WEB_LOCATION:444.8}
+        client-version: ${SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_CLIENT_VERSION:1.14.3}
+      rank:
+        enabled: ${SOCIAL_MONITOR_BILIBILI_LIVE_RANK_ENABLED:true}
+        page-size: ${SOCIAL_MONITOR_BILIBILI_LIVE_RANK_PAGE_SIZE:50}
+        guard-page-size: ${SOCIAL_MONITOR_BILIBILI_LIVE_RANK_GUARD_PAGE_SIZE:30}
+        max-pages: ${SOCIAL_MONITOR_BILIBILI_LIVE_RANK_MAX_PAGES:1}
+        request-min-interval-ms: ${SOCIAL_MONITOR_BILIBILI_LIVE_RANK_REQUEST_MIN_INTERVAL_MS:1500}
+        web-location: ${SOCIAL_MONITOR_BILIBILI_LIVE_RANK_WEB_LOCATION:444.8}

@@ -1,0 +1,1759 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>B站指定用户监控工作台三版样式稿</title>
+  <style>
+    :root {
+      color: #172033;
+      background: #edf2f7;
+      font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 14px;
+      --ink: #172033;
+      --muted: #667085;
+      --soft: #f8fafc;
+      --line: #d9e2ec;
+      --blue: #2f6df6;
+      --blue-weak: #e8efff;
+      --green: #10b981;
+      --green-weak: #e8f8f2;
+      --amber: #f59e0b;
+      --amber-weak: #fff5df;
+      --pink: #ef5b7d;
+      --pink-weak: #ffeaf0;
+      --cyan: #0891b2;
+      --cyan-weak: #e3f6fb;
+      --shadow: 0 22px 55px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+      background: #edf2f7;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .document-header,
+    .mockup-wrap {
+      width: 1440px;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    .document-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .document-header h1 {
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .document-header p {
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .legend span {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #475467;
+      font-size: 12px;
+    }
+
+    .mockup-wrap {
+      margin-bottom: 34px;
+    }
+
+    .mockup-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .mockup-title h2 {
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .mockup-title p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .screen {
+      width: 1440px;
+      height: 960px;
+      display: grid;
+      grid-template-columns: 236px minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid #cfd9e6;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      min-width: 0;
+      border-right: 1px solid #e5e9f0;
+      background: #fff;
+    }
+
+    .brand {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      border-bottom: 1px solid #edf0f5;
+    }
+
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand strong,
+    .brand span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .brand span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      padding: 14px 10px;
+    }
+
+    .nav-item {
+      height: 40px;
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: #475467;
+      text-decoration: none;
+    }
+
+    .nav-item.active {
+      background: var(--blue-weak);
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      color: currentColor;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .main {
+      min-width: 0;
+      background: #f5f7fb;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 24px;
+      border-bottom: 1px solid #e5e9f0;
+      background: #fff;
+    }
+
+    .topbar strong {
+      font-size: 18px;
+    }
+
+    .topbar span {
+      margin-left: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn,
+    .icon-btn {
+      border: 1px solid #cfd8e5;
+      border-radius: 8px;
+      background: #fff;
+      color: #344054;
+      height: 34px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 9px 20px rgba(47, 109, 246, 0.22);
+    }
+
+    .icon-btn {
+      width: 34px;
+      padding: 0;
+      font-weight: 800;
+    }
+
+    .content {
+      flex: 1;
+      min-height: 0;
+      padding: 22px 24px 24px;
+      overflow: hidden;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 0 4px var(--green-weak);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 26px;
+      padding: 0 9px;
+      border: 1px solid #d7e0eb;
+      border-radius: 999px;
+      background: #fff;
+      color: #475467;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .pill.blue {
+      border-color: #bfd0ff;
+      background: var(--blue-weak);
+      color: #1d4ed8;
+    }
+
+    .pill.green {
+      border-color: #bdebd9;
+      background: var(--green-weak);
+      color: #047857;
+    }
+
+    .pill.amber {
+      border-color: #f7d79a;
+      background: var(--amber-weak);
+      color: #a16207;
+    }
+
+    .pill.pink {
+      border-color: #ffc3d0;
+      background: var(--pink-weak);
+      color: #be123c;
+    }
+
+    .subject-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .subject-profile {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .avatar {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2f6df6, #06b6d4);
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .avatar.small {
+      width: 38px;
+      height: 38px;
+      font-size: 13px;
+    }
+
+    .avatar.live::after {
+      content: "";
+      position: absolute;
+      right: 2px;
+      bottom: 3px;
+      width: 11px;
+      height: 11px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .subject-profile h3 {
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .subject-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .health-card {
+      min-width: 230px;
+      padding-left: 18px;
+      border-left: 1px solid #e6ebf2;
+    }
+
+    .health-card .label,
+    .metric .label,
+    .widget .label,
+    .tiny-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .health-score {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .health-score strong {
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .progress {
+      height: 6px;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #ecf0f5;
+    }
+
+    .progress i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), #22c55e);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .metric {
+      min-width: 0;
+      min-height: 98px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .metric-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 13px;
+      font-size: 26px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .delta {
+      margin-top: 7px;
+      color: #047857;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .delta.down {
+      color: #be123c;
+    }
+
+    .widget {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .widget-head {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid #edf1f6;
+    }
+
+    .widget-title {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .widget-title h3 {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .drag-handle {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 1px solid #d9e1ec;
+      border-radius: 6px;
+      color: #98a2b3;
+      font-weight: 900;
+      line-height: 1;
+      background: #fff;
+    }
+
+    .widget-body {
+      padding: 14px;
+    }
+
+    .mini-bars {
+      height: 96px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding-top: 16px;
+    }
+
+    .mini-bars i {
+      flex: 1;
+      min-width: 0;
+      border-radius: 6px 6px 0 0;
+      background: linear-gradient(180deg, rgba(47, 109, 246, 0.82), rgba(47, 109, 246, 0.18));
+    }
+
+    .line-chart {
+      position: relative;
+      height: 128px;
+      margin-top: 6px;
+      border-radius: 8px;
+      background:
+        linear-gradient(#edf1f6 1px, transparent 1px) 0 25% / 100% 36px,
+        linear-gradient(90deg, rgba(47, 109, 246, 0.08), rgba(16, 185, 129, 0.08));
+      overflow: hidden;
+    }
+
+    .line-chart::before {
+      content: "";
+      position: absolute;
+      inset: 28px 12px 22px;
+      background: linear-gradient(135deg, rgba(47, 109, 246, 0.28), rgba(16, 185, 129, 0.16));
+      clip-path: polygon(0 70%, 12% 55%, 24% 62%, 38% 36%, 52% 42%, 65% 27%, 81% 31%, 100% 12%, 100% 100%, 0 100%);
+    }
+
+    .line-chart::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 40px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      transform: skewY(-8deg);
+      transform-origin: left center;
+      border-radius: 999px;
+    }
+
+    .dual-legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      color: #475467;
+      font-size: 12px;
+    }
+
+    .dual-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .dual-legend i {
+      width: 18px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .dual-legend i.hot {
+      background: linear-gradient(90deg, var(--pink), var(--amber));
+    }
+
+    .dual-chart {
+      position: relative;
+      height: 174px;
+      overflow: hidden;
+      border-radius: 8px;
+      background:
+        linear-gradient(#edf1f6 1px, transparent 1px) 0 25% / 100% 36px,
+        linear-gradient(90deg, rgba(47, 109, 246, 0.08), rgba(245, 158, 11, 0.08));
+    }
+
+    .dual-chart svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dual-chart .axis-note {
+      position: absolute;
+      top: 10px;
+      color: #64748b;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .dual-chart .axis-note.left {
+      left: 12px;
+    }
+
+    .dual-chart .axis-note.right {
+      right: 12px;
+    }
+
+    .dual-chart .time-note {
+      position: absolute;
+      bottom: 9px;
+      color: #94a3b8;
+      font-size: 11px;
+    }
+
+    .dual-chart .time-note.start {
+      left: 14px;
+    }
+
+    .dual-chart .time-note.end {
+      right: 14px;
+    }
+
+    .danmu-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .danmu-item {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      padding: 0 8px;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .danmu-item strong,
+    .danmu-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .danmu-item strong {
+      color: #475467;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .danmu-item span {
+      color: #344054;
+      font-size: 13px;
+    }
+
+    .danmu-item em {
+      color: #98a2b3;
+      font-style: normal;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .split-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .split-stats div {
+      min-width: 0;
+      padding: 10px;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .split-stats strong {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 18px;
+    }
+
+    .event-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .event {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .event i {
+      width: 10px;
+      height: 10px;
+      margin-top: 5px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 4px var(--blue-weak);
+    }
+
+    .event strong,
+    .event span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .event strong {
+      font-size: 13px;
+    }
+
+    .event span,
+    .event time {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .style-a .workspace {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .style-a .widget-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.58fr) minmax(320px, 0.94fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .style-a .widget.large .line-chart {
+      height: 172px;
+    }
+
+    .style-a .combined-widget .split-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .style-a .widget.small .widget-body {
+      min-height: 210px;
+    }
+
+    .style-a .empty-slot {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      border: 1px dashed #b8c5d6;
+      border-radius: 8px;
+      background:
+        repeating-linear-gradient(135deg, #f8fafc 0, #f8fafc 12px, #f2f6fb 12px, #f2f6fb 24px);
+      color: #64748b;
+      text-align: center;
+    }
+
+    .empty-slot strong {
+      display: block;
+      margin-top: 8px;
+      color: #334155;
+      font-size: 16px;
+    }
+
+    .style-b .content {
+      display: grid;
+      grid-template-columns: 286px minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .profile-rail {
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .profile-cover {
+      height: 112px;
+      background:
+        linear-gradient(135deg, rgba(47, 109, 246, 0.78), rgba(8, 145, 178, 0.72)),
+        radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.45), transparent 28%);
+    }
+
+    .profile-card {
+      padding: 0 16px 16px;
+      margin-top: -28px;
+    }
+
+    .profile-card .avatar {
+      width: 64px;
+      height: 64px;
+      border: 4px solid #fff;
+    }
+
+    .profile-card h3 {
+      margin-top: 12px;
+      font-size: 20px;
+    }
+
+    .profile-card p {
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .account-list {
+      display: grid;
+      gap: 10px;
+      padding: 14px 16px 16px;
+      border-top: 1px solid #edf1f6;
+    }
+
+    .account {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      min-height: 58px;
+      padding: 10px;
+      border: 1px solid #e5ebf3;
+      border-radius: 8px;
+      background: #fbfdff;
+    }
+
+    .account strong,
+    .account span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .account span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .analysis {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) 250px;
+      gap: 14px;
+    }
+
+    .analysis-head {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .analysis-kpi {
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .analysis-kpi strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 22px;
+      white-space: nowrap;
+    }
+
+    .analysis-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .dense-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      table-layout: fixed;
+    }
+
+    .dense-table th,
+    .dense-table td {
+      height: 36px;
+      border-bottom: 1px solid #edf1f6;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .dense-table th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .dense-table td {
+      color: #344054;
+    }
+
+    .bottom-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 14px;
+    }
+
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag-cloud span {
+      padding: 7px 9px;
+      border-radius: 999px;
+      background: #f2f6fb;
+      color: #475467;
+      font-size: 12px;
+    }
+
+    .style-c {
+      background: #f1f5f9;
+    }
+
+    .style-c .sidebar {
+      background: #101827;
+      color: #dbe7f5;
+      border-right: none;
+    }
+
+    .style-c .brand {
+      border-bottom-color: rgba(255, 255, 255, 0.09);
+    }
+
+    .style-c .brand span,
+    .style-c .nav-item {
+      color: #97a8bd;
+    }
+
+    .style-c .nav-item.active {
+      background: rgba(47, 109, 246, 0.18);
+      color: #fff;
+    }
+
+    .style-c .main {
+      background: #eef3f8;
+    }
+
+    .style-c .topbar {
+      background: #fff;
+    }
+
+    .board-shell {
+      height: 100%;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .module-library {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .library-head {
+      padding: 14px;
+      border-bottom: 1px solid #edf1f6;
+    }
+
+    .library-head h3 {
+      font-size: 16px;
+    }
+
+    .library-list {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .library-item {
+      padding: 12px;
+      border: 1px solid #e4ebf3;
+      border-radius: 8px;
+      background: #fbfdff;
+    }
+
+    .library-item strong,
+    .library-item span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .library-item span {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .board {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .board-filter {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .subject-tabs {
+      min-width: 0;
+      display: flex;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .subject-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      max-width: 210px;
+      height: 38px;
+      padding: 0 10px;
+      border: 1px solid #d7e0eb;
+      border-radius: 8px;
+      background: #fff;
+      color: #475467;
+    }
+
+    .subject-tab.active {
+      border-color: #bcd0ff;
+      background: var(--blue-weak);
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    .subject-tab span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .board-canvas {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      grid-auto-rows: 116px;
+      gap: 12px;
+      padding: 2px;
+      overflow: hidden;
+    }
+
+    .board-canvas .widget {
+      height: 100%;
+    }
+
+    .span-3 {
+      grid-column: span 3;
+    }
+
+    .span-4 {
+      grid-column: span 4;
+    }
+
+    .span-5 {
+      grid-column: span 5;
+    }
+
+    .span-7 {
+      grid-column: span 7;
+    }
+
+    .span-8 {
+      grid-column: span 8;
+    }
+
+    .rows-1 {
+      grid-row: span 1;
+    }
+
+    .rows-2 {
+      grid-row: span 2;
+    }
+
+    .rows-3 {
+      grid-row: span 3;
+    }
+
+    .heat-strip {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .heat-row {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr) 58px;
+      gap: 8px;
+      align-items: center;
+      color: #475467;
+      font-size: 12px;
+    }
+
+    .heat-row b {
+      display: block;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e7edf5;
+    }
+
+    .heat-row b i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--pink), var(--amber));
+    }
+
+    .compact-number {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .compact-number strong {
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .compact-number span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .style-c .span-4.rows-1 .widget-body {
+      padding-top: 8px;
+      padding-bottom: 10px;
+    }
+
+    .style-c .span-4.rows-1 .compact-number {
+      margin-top: 0;
+    }
+
+    .style-c .compact-danmu .split-stats {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 14px;
+      }
+
+      .screen {
+        width: 100%;
+        height: auto;
+        min-height: 920px;
+        grid-template-columns: 72px minmax(0, 1fr);
+      }
+
+      .brand {
+        justify-content: center;
+        padding: 0;
+      }
+
+      .brand > div:not(.brand-mark),
+      .nav-item span {
+        display: none;
+      }
+
+      .metric-grid,
+      .analysis-head,
+      .style-a .widget-grid,
+      .style-b .content,
+      .analysis-grid,
+      .bottom-grid,
+      .board-shell {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="document-header">
+    <div>
+      <h1>B站指定用户监控工作台三版样式稿</h1>
+      <p>围绕一个用户聚合已实现的粉丝数、直播间热度，并预留直播弹幕监控和可编排模块。</p>
+    </div>
+    <div class="legend">
+      <span>Vue 3 / Element Plus 气质</span>
+      <span>8px 工具型卡片</span>
+      <span>Subject + Widget 扩展</span>
+    </div>
+  </header>
+
+  <section class="mockup-wrap">
+    <div class="mockup-title">
+      <h2>方案 A：总览工作台</h2>
+      <p>最贴近现有 Bilibili 页面，适合作为首版落地。</p>
+    </div>
+    <main id="style-a" class="screen style-a">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SD</div>
+          <div>
+            <strong>Social Data Monitor</strong>
+            <span>数据监控后台</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="nav-item" href="#"><b class="nav-icon">DL</b><span>Dashboard</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">BI</b><span>Bilibili</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">LV</b><span>直播监控</span></a>
+          <a class="nav-item active" href="#"><b class="nav-icon">UM</b><span>用户监控</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">PL</b><span>平台管理</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">TK</b><span>采集任务</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">DC</b><span>数据中心</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">AI</b><span>AI 分析</span></a>
+        </nav>
+      </aside>
+      <section class="main">
+        <div class="topbar">
+          <div>
+            <strong>用户监控</strong>
+            <span>Bilibili MVP / 指定用户工作台</span>
+          </div>
+          <div class="actions">
+            <button class="icon-btn" title="刷新">R</button>
+            <button class="btn">布局管理</button>
+            <button class="btn primary">添加监控</button>
+          </div>
+        </div>
+        <div class="content">
+          <div class="workspace">
+            <section class="subject-bar">
+              <div class="subject-profile">
+                <div class="avatar live">A</div>
+                <div>
+                  <h3>用户A</h3>
+                  <div class="subject-meta">
+                    <span class="pill blue">Bilibili UID 123456</span>
+                    <span class="pill green"><i class="status-dot"></i>直播中</span>
+                    <span class="pill amber">弹幕监听已接入</span>
+                    <span class="pill">4 个模块</span>
+                  </div>
+                </div>
+              </div>
+              <div class="health-card">
+                <div class="label">采集健康</div>
+                <div class="health-score">
+                  <strong>96</strong>
+                  <span class="pill green">正常</span>
+                </div>
+                <div class="progress"><i style="width: 96%"></i></div>
+              </div>
+            </section>
+
+            <section class="metric-grid">
+              <div class="metric">
+                <div class="metric-head"><span class="label">总粉丝数</span><span class="pill green">+0.16%</span></div>
+                <strong>821,940</strong>
+                <div class="delta">今日 +1,284</div>
+              </div>
+              <div class="metric">
+                <div class="metric-head"><span class="label">直播间热度</span><span class="pill pink">峰值</span></div>
+                <strong>62,830</strong>
+                <div class="delta">10 分钟 +8,420</div>
+              </div>
+              <div class="metric">
+                <div class="metric-head"><span class="label">弹幕速率</span><span class="pill blue">实时</span></div>
+                <strong>18 /min</strong>
+                <div class="delta">近 5 分钟 91 条</div>
+              </div>
+              <div class="metric">
+                <div class="metric-head"><span class="label">最近成功采集</span><span class="pill">18 秒前</span></div>
+                <strong>4/4</strong>
+                <div class="delta">下一轮 02:12</div>
+              </div>
+            </section>
+
+            <section class="widget-grid">
+              <article class="widget large combined-widget">
+                <div class="widget-head">
+                  <div class="widget-title">
+                    <span class="drag-handle">::</span>
+                    <h3>用户A 粉丝数与直播热度监控</h3>
+                  </div>
+                  <div class="actions"><span class="pill blue">双指标</span><span class="pill green">已实现</span></div>
+                </div>
+                <div class="widget-body">
+                  <div class="dual-legend">
+                    <span><i></i>粉丝数</span>
+                    <span><i class="hot"></i>直播间热度</span>
+                    <span class="pill">按时间对齐</span>
+                  </div>
+                  <div class="dual-chart">
+                    <span class="axis-note left">粉丝 819k - 822k</span>
+                    <span class="axis-note right">热度 40k - 72k</span>
+                    <svg viewBox="0 0 680 174" aria-hidden="true">
+                      <defs>
+                        <linearGradient id="fanFillA" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stop-color="#2f6df6" stop-opacity="0.28" />
+                          <stop offset="100%" stop-color="#2f6df6" stop-opacity="0.04" />
+                        </linearGradient>
+                        <linearGradient id="hotFillA" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stop-color="#ef5b7d" stop-opacity="0.22" />
+                          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.05" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M26 130 L96 116 L166 108 L236 96 L306 90 L376 72 L446 66 L516 58 L604 44 L654 38 L654 150 L26 150 Z" fill="url(#fanFillA)" />
+                      <path d="M26 142 L96 126 L166 132 L236 102 L306 108 L376 82 L446 88 L516 60 L604 50 L654 56 L654 150 L26 150 Z" fill="url(#hotFillA)" />
+                      <polyline points="26,130 96,116 166,108 236,96 306,90 376,72 446,66 516,58 604,44 654,38" fill="none" stroke="#2f6df6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                      <polyline points="26,142 96,126 166,132 236,102 306,108 376,82 446,88 516,60 604,50 654,56" fill="none" stroke="#ef5b7d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                      <polyline points="26,142 96,126 166,132 236,102 306,108 376,82 446,88 516,60 604,50 654,56" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 10" opacity="0.9" />
+                      <circle cx="604" cy="44" r="5" fill="#2f6df6" stroke="#fff" stroke-width="3" />
+                      <circle cx="604" cy="50" r="5" fill="#ef5b7d" stroke="#fff" stroke-width="3" />
+                    </svg>
+                    <span class="time-note start">18:00</span>
+                    <span class="time-note end">18:45</span>
+                  </div>
+                  <div class="split-stats">
+                    <div><span class="tiny-label">当前粉丝</span><strong>821,940</strong></div>
+                    <div><span class="tiny-label">24h 净增</span><strong>+1,284</strong></div>
+                    <div><span class="tiny-label">当前热度</span><strong>62,830</strong></div>
+                    <div><span class="tiny-label">热度峰值</span><strong>71,402</strong></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="widget small">
+                <div class="widget-head">
+                  <div class="widget-title">
+                    <span class="drag-handle">::</span>
+                    <h3>直播间弹幕监控</h3>
+                  </div>
+                  <div class="actions"><span class="pill amber">新增</span></div>
+                </div>
+                <div class="widget-body">
+                  <div class="split-stats">
+                    <div><span class="tiny-label">弹幕数</span><strong>1,286</strong></div>
+                    <div><span class="tiny-label">点赞增量</span><strong>+4,902</strong></div>
+                    <div><span class="tiny-label">看过人数</span><strong>18.4万</strong></div>
+                  </div>
+                  <div class="danmu-list">
+                    <div class="danmu-item"><strong>游客</strong><span>这波热度起来了</span><em>18:31</em></div>
+                    <div class="danmu-item"><strong>粉丝牌12</strong><span>新标题刚改，分区也变了</span><em>18:30</em></div>
+                    <div class="danmu-item"><strong>用户</strong><span>点赞已经过 4 万了</span><em>18:30</em></div>
+                    <div class="danmu-item"><strong>游客</strong><span>这场互动很密</span><em>18:29</em></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="widget large">
+                <div class="widget-head">
+                  <div class="widget-title">
+                    <span class="drag-handle">::</span>
+                    <h3>用户A 采集健康与事件</h3>
+                  </div>
+                  <div class="actions"><span class="pill green">正常</span><button class="icon-btn" title="更多">...</button></div>
+                </div>
+                <div class="widget-body">
+                  <div class="split-stats">
+                    <div><span class="tiny-label">启用模块</span><strong>4/4</strong></div>
+                    <div><span class="tiny-label">下一轮采集</span><strong>02:12</strong></div>
+                    <div><span class="tiny-label">最近成功</span><strong>18 秒前</strong></div>
+                  </div>
+                  <div class="event-list" style="margin-top: 12px;">
+                    <div class="event"><i></i><div><strong>粉丝与热度曲线已对齐</strong><span>双指标监控图</span></div><time>18:45</time></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="widget small">
+                <div class="widget-head">
+                  <div class="widget-title">
+                    <span class="drag-handle">::</span>
+                    <h3>待添加模块</h3>
+                  </div>
+                  <span class="pill">可扩展</span>
+                </div>
+                <div class="widget-body">
+                  <div class="empty-slot">
+                    <div>
+                      <span class="pill blue">Widget Slot</span>
+                      <strong>内容表现 / 事件流 / AI 摘要</strong>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section class="mockup-wrap">
+    <div class="mockup-title">
+      <h2>方案 B：用户画像分析页</h2>
+      <p>更适合单个对象复盘，强调用户资料、直播动态和趋势分析。</p>
+    </div>
+    <main id="style-b" class="screen style-b">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SD</div>
+          <div>
+            <strong>Social Data Monitor</strong>
+            <span>数据监控后台</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="nav-item" href="#"><b class="nav-icon">DL</b><span>Dashboard</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">BI</b><span>Bilibili</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">LV</b><span>直播监控</span></a>
+          <a class="nav-item active" href="#"><b class="nav-icon">UM</b><span>用户监控</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">DC</b><span>数据中心</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">AN</b><span>分析看板</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">AI</b><span>AI 分析</span></a>
+        </nav>
+      </aside>
+      <section class="main">
+        <div class="topbar">
+          <div>
+            <strong>用户画像</strong>
+            <span>用户A / Bilibili 账号与直播表现</span>
+          </div>
+          <div class="actions">
+            <button class="btn">近 24 小时</button>
+            <button class="btn">导出</button>
+            <button class="btn primary">刷新数据</button>
+          </div>
+        </div>
+        <div class="content">
+          <aside class="profile-rail">
+            <div class="profile-cover"></div>
+            <div class="profile-card">
+              <div class="avatar live">A</div>
+              <h3>用户A</h3>
+              <p>Bilibili 主账号已绑定直播间，粉丝趋势和直播热度正在采集。</p>
+              <div class="subject-meta">
+                <span class="pill green">健康 96</span>
+                <span class="pill blue">直播中</span>
+                <span class="pill">UID 123456</span>
+              </div>
+            </div>
+            <div class="account-list">
+              <div class="account">
+                <div class="avatar small">B</div>
+                <div><strong>Bilibili 账号</strong><span>粉丝、资料、头像</span></div>
+              </div>
+              <div class="account">
+                <div class="avatar small">L</div>
+                <div><strong>Bilibili 直播间</strong><span>热度、状态、弹幕</span></div>
+              </div>
+              <div class="account">
+                <div class="avatar small">+</div>
+                <div><strong>扩展平台</strong><span>后续接入抖音/微博等</span></div>
+              </div>
+            </div>
+          </aside>
+
+          <section class="analysis">
+            <div class="analysis-head">
+              <div class="analysis-kpi"><span class="tiny-label">总粉丝</span><strong>821,940</strong><div class="delta">+1,284</div></div>
+              <div class="analysis-kpi"><span class="tiny-label">直播热度</span><strong>62,830</strong><div class="delta">峰值 71,402</div></div>
+              <div class="analysis-kpi"><span class="tiny-label">弹幕总数</span><strong>1,286</strong><div class="delta">18 /min</div></div>
+              <div class="analysis-kpi"><span class="tiny-label">点赞增量</span><strong>+4,902</strong><div class="delta">持续上升</div></div>
+              <div class="analysis-kpi"><span class="tiny-label">采集状态</span><strong>4/4</strong><div class="delta">全部正常</div></div>
+            </div>
+
+            <div class="analysis-grid">
+              <article class="widget">
+                <div class="widget-head">
+                  <div class="widget-title"><span class="drag-handle">::</span><h3>粉丝与直播热度联动</h3></div>
+                  <span class="pill blue">双指标</span>
+                </div>
+                <div class="widget-body">
+                  <div class="line-chart"></div>
+                  <table class="dense-table">
+                    <thead><tr><th>时间</th><th>粉丝</th><th>热度</th><th>事件</th></tr></thead>
+                    <tbody>
+                      <tr><td>18:30</td><td>821,940</td><td>62,830</td><td>弹幕峰值</td></tr>
+                      <tr><td>18:15</td><td>821,104</td><td>54,410</td><td>点赞增长</td></tr>
+                      <tr><td>18:00</td><td>820,656</td><td>47,220</td><td>开播后加速</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="widget">
+                <div class="widget-head">
+                  <div class="widget-title"><span class="drag-handle">::</span><h3>互动事件分布</h3></div>
+                  <span class="pill amber">实时流</span>
+                </div>
+                <div class="widget-body">
+                  <div class="mini-bars">
+                    <i style="height:44%"></i><i style="height:52%"></i><i style="height:38%"></i><i style="height:66%"></i>
+                    <i style="height:80%"></i><i style="height:71%"></i><i style="height:92%"></i><i style="height:74%"></i>
+                  </div>
+                  <div class="tag-cloud">
+                    <span>弹幕 1,286</span><span>点赞 4,902</span><span>看过 18.4万</span>
+                    <span>房间统计更新</span><span>标题变化</span><span>开播事件</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="bottom-grid">
+              <article class="widget">
+                <div class="widget-head">
+                  <div class="widget-title"><span class="drag-handle">::</span><h3>最近弹幕窗口</h3></div>
+                  <span class="pill pink">低成本 WebSocket</span>
+                </div>
+                <div class="widget-body">
+                  <div class="danmu-list">
+                    <div class="danmu-item"><strong>游客</strong><span>刚进来就看到热度上涨</span><em>18:31:18</em></div>
+                    <div class="danmu-item"><strong>粉丝牌</strong><span>今天涨粉速度比昨天快</span><em>18:31:02</em></div>
+                    <div class="danmu-item"><strong>用户</strong><span>标题换了之后流量明显好了</span><em>18:30:44</em></div>
+                    <div class="danmu-item"><strong>游客</strong><span>弹幕密度开始变高</span><em>18:30:17</em></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="widget">
+                <div class="widget-head">
+                  <div class="widget-title"><span class="drag-handle">::</span><h3>事件时间线</h3></div>
+                  <span class="pill">今日</span>
+                </div>
+                <div class="widget-body">
+                  <div class="event-list">
+                    <div class="event"><i></i><div><strong>弹幕速率达到 18/min</strong><span>直播间弹幕监控</span></div><time>18:31</time></div>
+                    <div class="event"><i style="background:var(--green);box-shadow:0 0 0 4px var(--green-weak)"></i><div><strong>粉丝数突破 82.1 万</strong><span>粉丝监控</span></div><time>18:22</time></div>
+                    <div class="event"><i style="background:var(--amber);box-shadow:0 0 0 4px var(--amber-weak)"></i><div><strong>直播标题发生变化</strong><span>直播间监控</span></div><time>18:05</time></div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section class="mockup-wrap">
+    <div class="mockup-title">
+      <h2>方案 C：可编排监控看板</h2>
+      <p>最接近草图“可移动展示位置”的目标，适合后续扩展更多监控模块。</p>
+    </div>
+    <main id="style-c" class="screen style-c">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SD</div>
+          <div>
+            <strong>Social Data Monitor</strong>
+            <span>数据监控后台</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="nav-item" href="#"><b class="nav-icon">DL</b><span>Dashboard</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">BI</b><span>Bilibili</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">LV</b><span>直播监控</span></a>
+          <a class="nav-item active" href="#"><b class="nav-icon">UM</b><span>用户监控</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">TK</b><span>采集任务</span></a>
+          <a class="nav-item" href="#"><b class="nav-icon">ST</b><span>系统设置</span></a>
+        </nav>
+      </aside>
+      <section class="main">
+        <div class="topbar">
+          <div>
+            <strong>用户监控看板</strong>
+            <span>布局：运营默认 / 用户A</span>
+          </div>
+          <div class="actions">
+            <button class="btn">预览</button>
+            <button class="btn">保存布局</button>
+            <button class="btn primary">添加模块</button>
+          </div>
+        </div>
+        <div class="content">
+          <div class="board-shell">
+            <aside class="module-library">
+              <div class="library-head">
+                <h3>模块库</h3>
+                <div class="subject-meta">
+                  <span class="pill blue">已启用 3</span>
+                  <span class="pill">待添加 4</span>
+                </div>
+              </div>
+              <div class="library-list">
+                <div class="library-item"><strong>直播间热度监控</strong><span>已实现 / 趋势图</span></div>
+                <div class="library-item"><strong>粉丝数监控</strong><span>已实现 / 增长趋势</span></div>
+                <div class="library-item"><strong>直播间弹幕监控</strong><span>新增 / WebSocket 聚合</span></div>
+                <div class="library-item"><strong>事件时间线</strong><span>开播、标题、异常</span></div>
+                <div class="library-item"><strong>AI 观察</strong><span>后续异步摘要</span></div>
+              </div>
+            </aside>
+
+            <section class="board">
+              <div class="board-filter">
+                <div class="subject-tabs">
+                  <button class="subject-tab active"><div class="avatar small live">A</div><span>用户A</span></button>
+                  <button class="subject-tab"><div class="avatar small">B</div><span>用户B</span></button>
+                  <button class="subject-tab"><div class="avatar small">C</div><span>用户C</span></button>
+                </div>
+                <div class="actions">
+                  <span class="pill green">采集正常</span>
+                  <span class="pill blue">拖拽布局</span>
+                </div>
+              </div>
+
+              <div class="board-canvas">
+                <article class="widget span-4 rows-1">
+                  <div class="widget-head">
+                    <div class="widget-title"><span class="drag-handle">::</span><h3>总粉丝</h3></div>
+                    <span class="pill green">+1,284</span>
+                  </div>
+                  <div class="widget-body">
+                    <div class="compact-number"><strong>821,940</strong><span>24h +0.16%</span></div>
+                  </div>
+                </article>
+
+                <article class="widget span-4 rows-1">
+                  <div class="widget-head">
+                    <div class="widget-title"><span class="drag-handle">::</span><h3>直播热度</h3></div>
+                    <span class="pill pink">直播中</span>
+                  </div>
+                  <div class="widget-body">
+                    <div class="compact-number"><strong>62,830</strong><span>峰值 71,402</span></div>
+                  </div>
+                </article>
+
+                <article class="widget span-4 rows-1">
+                  <div class="widget-head">
+                    <div class="widget-title"><span class="drag-handle">::</span><h3>弹幕速率</h3></div>
+                    <span class="pill amber">实时</span>
+                  </div>
+                  <div class="widget-body">
+                    <div class="compact-number"><strong>18 /min</strong><span>近 5 分钟 91</span></div>
+                  </div>
+                </article>
+
+                <article class="widget span-8 rows-3">
+                  <div class="widget-head">
+                    <div class="widget-title"><span class="drag-handle">::</span><h3>直播间热度 + 粉丝增长</h3></div>
+                    <div class="actions"><span class="pill green">已实现</span><button class="icon-btn" title="设置">S</button></div>
+                  </div>
+                  <div class="widget-body">
+                    <div class="line-chart"></div>
+                    <div class="split-stats">
+                      <div><span class="tiny-label">直播间热度</span><strong>62,830</strong></div>
+                      <div><span class="tiny-label">粉丝增长</span><strong>+1,284</strong></div>
+                      <div><span class="tiny-label">联动峰值</span><strong>18:30</strong></div>
+                    </div>
+                    <div class="heat-strip">
+                      <div class="heat-row"><span>18:00</span><b><i style="width:52%"></i></b><span>47,220</span></div>
+                      <div class="heat-row"><span>18:15</span><b><i style="width:71%"></i></b><span>54,410</span></div>
+                      <div class="heat-row"><span>18:30</span><b><i style="width:88%"></i></b><span>62,830</span></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="widget span-4 rows-2 compact-danmu">
+                  <div class="widget-head">
+                    <div class="widget-title"><span class="drag-handle">::</span><h3>直播间弹幕监控</h3></div>
+                    <span class="pill amber">新增</span>
+                  </div>
+                  <div class="widget-body">
+                    <div class="danmu-list">
+                      <div class="danmu-item"><strong>游客</strong><span>互动高峰来了</span><em>18:31</em></div>
+                      <div class="danmu-item"><strong>粉丝牌</strong><span>弹幕越来越密</span><em>18:30</em></div>
+                      <div class="danmu-item"><strong>用户</strong><span>点赞继续涨</span><em>18:30</em></div>
+                    </div>
+                    <div class="split-stats">
+                      <div><span class="tiny-label">弹幕</span><strong>1,286</strong></div>
+                      <div><span class="tiny-label">点赞</span><strong>+4,902</strong></div>
+                      <div><span class="tiny-label">看过</span><strong>18.4万</strong></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="widget span-4 rows-2">
+                  <div class="widget-head">
+                    <div class="widget-title"><span class="drag-handle">::</span><h3>事件时间线</h3></div>
+                    <span class="pill">今日</span>
+                  </div>
+                  <div class="widget-body">
+                    <div class="event-list">
+                      <div class="event"><i></i><div><strong>弹幕速率达到 18/min</strong><span>实时弹幕聚合</span></div><time>18:31</time></div>
+                      <div class="event"><i style="background:var(--green);box-shadow:0 0 0 4px var(--green-weak)"></i><div><strong>粉丝突破 82.1 万</strong><span>粉丝数监控</span></div><time>18:22</time></div>
+                      <div class="event"><i style="background:var(--amber);box-shadow:0 0 0 4px var(--amber-weak)"></i><div><strong>直播标题变化</strong><span>直播间监控</span></div><time>18:05</time></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="widget span-4 rows-2">
+                  <div class="widget-head">
+                    <div class="widget-title"><span class="drag-handle">::</span><h3>待添加</h3></div>
+                    <span class="pill">空位</span>
+                  </div>
+                  <div class="widget-body">
+                    <div class="empty-slot">
+                      <div>
+                        <span class="pill blue">Widget Slot</span>
+                        <strong>内容表现 / AI 摘要</strong>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+</body>
+</html>

@@ -1,0 +1,45 @@
+# Local agent / package caches
+.agents/
+.pnpm-store/
+
+# Local / third-party research dumps
+external-research/
+bilibili-api-collect-new-research/
+design-mockups/png/edge-profile*/
+
+# Env
+.env
+.env.local
+.env.*.local
+*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Runtime data / tools / logs
+**/.dev-data/
+**/.dev-tools/
+**/.tmp-chrome*/
+**/.tmp-edge*/
+*.log
+*.err.log
+
+# Java / Maven
+**/target/
+**/.mvn/wrapper/apache-maven-*/
+**/.mvn/wrapper/apache-maven-*-bin.zip
+**/.mvn/wrapper/_extract/
+
+# Node / frontend
+**/node_modules/
+**/dist/
+**/.vite/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store

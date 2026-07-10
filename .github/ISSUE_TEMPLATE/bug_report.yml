@@ -1,0 +1,50 @@
+name: 缺陷反馈
+description: 报告一个可复现的问题
+title: "[缺陷]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请不要包含真实 Cookie、token、私钥、数据库密码或个人账号数据。
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题摘要
+      description: 出现了什么问题？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请提供最小可复现步骤。
+      placeholder: |
+        1. 启动后端...
+        2. 打开页面...
+        3. 点击...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境信息
+      placeholder: "操作系统、JDK、Node.js、PostgreSQL 版本"
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: 粘贴日志前请先脱敏。
+      render: text

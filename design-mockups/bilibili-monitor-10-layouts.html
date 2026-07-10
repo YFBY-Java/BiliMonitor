@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bilibili Monitor Layout Concepts</title>
+  <style>
+    :root {
+      --blue: #3f7cff;
+      --sky: #22a8f2;
+      --green: #14a86b;
+      --red: #d94d4d;
+      --amber: #f0a83a;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #dfe5ef;
+      --panel: #ffffff;
+      --soft: #f5f7fb;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e9eef7;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+    }
+
+    .gallery {
+      display: grid;
+      gap: 32px;
+      padding: 32px;
+      justify-items: center;
+    }
+
+    .frame {
+      width: 1440px;
+      height: 960px;
+      overflow: hidden;
+      background: #f4f7fb;
+      border: 1px solid #d9e0ea;
+      box-shadow: 0 18px 60px rgba(15, 23, 42, .15);
+      position: relative;
+    }
+
+    .single .gallery {
+      padding: 0;
+      background: #f4f7fb;
+    }
+
+    .single .frame {
+      border: 0;
+      box-shadow: none;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      height: 100%;
+      background: #f3f6fb;
+    }
+
+    .side {
+      background: #fff;
+      border-right: 1px solid #e5eaf2;
+      padding: 18px 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(135deg, #3f7cff, #6aa4ff);
+      font-weight: 800;
+    }
+
+    .brand h2 {
+      font-size: 18px;
+      line-height: 1.15;
+      margin: 0;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav div {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      border-radius: 8px;
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .nav .active {
+      background: #edf4ff;
+      color: #246cff;
+      font-weight: 700;
+    }
+
+    .nav .dot {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid currentColor;
+      border-radius: 5px;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 22px 24px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid #dce3ee;
+      background: white;
+      padding: 0 14px;
+      color: #334155;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      color: white;
+      border-color: #3f7cff;
+      background: #3f7cff;
+    }
+
+    .chip {
+      height: 28px;
+      border-radius: 999px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #eef3fb;
+      color: #516173;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chip.active {
+      background: #e8f0ff;
+      color: #2267ff;
+      box-shadow: inset 0 0 0 1px #9fc0ff;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid #dfe6f1;
+      border-radius: 8px;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 16px;
+      min-height: 90px;
+    }
+
+    .stat span {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 27px;
+      letter-spacing: 0;
+    }
+
+    .mini-form {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+    }
+
+    .field {
+      height: 36px;
+      min-width: 124px;
+      border: 1px solid #d7deeb;
+      border-radius: 6px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .field.small { min-width: 86px; justify-content: center; color: #334155; }
+
+    .user-strip {
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+      align-items: stretch;
+    }
+
+    .user-card {
+      flex: 1 1 0;
+      min-width: 0;
+      border-radius: 8px;
+      border: 1px solid #dfe6f1;
+      background: white;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      position: relative;
+    }
+
+    .user-card.compact {
+      grid-template-columns: 28px minmax(0, 1fr);
+      padding: 8px;
+    }
+
+    .user-card.selected {
+      border-color: #5c91ff;
+      background: #f7fbff;
+      box-shadow: inset 0 0 0 2px rgba(63,124,255,.08);
+    }
+
+    .user-card .check {
+      position: absolute;
+      right: 7px;
+      top: 7px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #3f7cff;
+      color: white;
+      font-size: 11px;
+      display: grid;
+      place-items: center;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .compact .avatar {
+      width: 28px;
+      height: 28px;
+      font-size: 11px;
+    }
+
+    .user-meta {
+      min-width: 0;
+    }
+
+    .user-meta b,
+    .user-meta span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .user-meta b {
+      font-size: 14px;
+    }
+
+    .user-meta span {
+      margin-top: 4px;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .delta {
+      color: #0d8c62;
+      font-weight: 800;
+    }
+
+    .delta.down { color: #c24141; }
+
+    .chart-area {
+      min-height: 0;
+      flex: 1;
+      display: grid;
+      gap: 12px;
+    }
+
+    .charts {
+      display: grid;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .charts.n1 {
+      grid-template-columns: 1fr;
+    }
+
+    .charts.n2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .charts.n3 {
+      grid-template-columns: 1.1fr .9fr;
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+
+    .charts.n3 .chart-card:first-child {
+      grid-row: span 2;
+    }
+
+    .charts.n4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+
+    .chart-card {
+      min-height: 0;
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .chart-head h3 {
+      margin: 0;
+      font-size: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chart-head span {
+      color: #64748b;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .chart-svg {
+      width: 100%;
+      height: 100%;
+      min-height: 130px;
+    }
+
+    .layout-preview {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #64748b;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .layout-icon {
+      width: 34px;
+      height: 24px;
+      border: 1px solid #cfd8e7;
+      border-radius: 5px;
+      display: grid;
+      gap: 2px;
+      padding: 3px;
+      background: #fff;
+    }
+
+    .layout-icon.active {
+      border-color: #3f7cff;
+      background: #eff5ff;
+    }
+
+    .layout-icon i {
+      background: #a8b8ce;
+      border-radius: 2px;
+    }
+
+    .l1 { grid-template-columns: 1fr; }
+    .l2 { grid-template-columns: 1fr 1fr; }
+    .l3 { grid-template-columns: 1.25fr 1fr; grid-template-rows: 1fr 1fr; }
+    .l3 i:first-child { grid-row: span 2; }
+    .l4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      min-height: 34px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .section-head .hint {
+      color: #64748b;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .accent-blue { --accent: #3f7cff; }
+    .accent-cyan { --accent: #16a6d9; }
+    .accent-green { --accent: #13a977; }
+    .accent-purple { --accent: #7357f6; }
+    .accent-orange { --accent: #eb8a28; }
+    .accent-red { --accent: #d95656; }
+
+    .v2 .user-strip {
+      background: #fff;
+      border: 1px solid #dfe6f1;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .v2 .user-card {
+      border: 0;
+      background: #f5f8fc;
+    }
+
+    .v2 .user-card.selected {
+      background: #eaf3ff;
+      box-shadow: inset 0 0 0 1px #72a4ff;
+    }
+
+    .v2 .main {
+      gap: 12px;
+    }
+
+    .v3 .app {
+      grid-template-columns: 198px 1fr;
+    }
+
+    .v3 .user-strip {
+      align-items: center;
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .v3 .user-card {
+      background: #1f2a3d;
+      border-color: #2d3b55;
+      color: white;
+    }
+
+    .v3 .user-card span {
+      color: #b9c4d6;
+    }
+
+    .v3 .user-card.selected {
+      background: #253a62;
+      border-color: #6aa4ff;
+    }
+
+    .v4 .user-strip {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+    }
+
+    .v4 .user-card {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      text-align: center;
+      min-height: 100px;
+    }
+
+    .v4 .avatar {
+      width: 42px;
+      height: 42px;
+    }
+
+    .v5 .content-grid {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 12px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .v5 .focus-panel {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .v5 .focus-item {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 9px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .v6 .main {
+      background: #f7f8f3;
+    }
+
+    .v6 .panel,
+    .v6 .user-card {
+      border-color: #dbe2d3;
+    }
+
+    .v6 .user-card.selected {
+      border-color: #51a564;
+      background: #f1fbf1;
+    }
+
+    .v7 .app {
+      grid-template-columns: 84px 1fr;
+    }
+
+    .v7 .side {
+      padding: 14px 10px;
+    }
+
+    .v7 .brand {
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .v7 .brand h2,
+    .v7 .brand p,
+    .v7 .nav div span {
+      display: none;
+    }
+
+    .v7 .nav div {
+      justify-content: center;
+      padding: 0;
+    }
+
+    .v7 .mini-table {
+      background: white;
+      border: 1px solid #dfe6f1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .v7 .row {
+      display: grid;
+      grid-template-columns: 1.4fr .8fr .7fr .9fr 1fr;
+      min-height: 46px;
+      align-items: center;
+      border-bottom: 1px solid #edf1f6;
+      padding: 0 12px;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .v7 .row.head {
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .v8 .app {
+      grid-template-columns: 220px 1fr;
+      background: #eef6f9;
+    }
+
+    .v8 .rank-band {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 12px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .v8 .rank-list {
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .v8 .rank-item {
+      display: grid;
+      grid-template-columns: 28px 38px minmax(0,1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 52px;
+      padding: 8px;
+      border-radius: 8px;
+      background: #f8fbfd;
+      border: 1px solid #dfe8ef;
+    }
+
+    .v9 .main {
+      background: #fbf7f4;
+    }
+
+    .v9 .timeline-strip {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .v9 .time-card {
+      min-width: 0;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #e4d8cc;
+      background: white;
+      display: grid;
+      gap: 8px;
+    }
+
+    .v9 .bar {
+      height: 5px;
+      border-radius: 999px;
+      background: #f0c18c;
+      overflow: hidden;
+    }
+
+    .v9 .bar i {
+      display: block;
+      height: 100%;
+      background: #2aa889;
+      border-radius: 999px;
+    }
+
+    .v10 .app {
+      background: #0b1220;
+      color: #e5edf8;
+    }
+
+    .v10 .side {
+      background: #0f172a;
+      border-color: #202b42;
+    }
+
+    .v10 .brand p,
+    .v10 .title p,
+    .v10 .nav div,
+    .v10 .chip,
+    .v10 .chart-head span,
+    .v10 .section-head .hint {
+      color: #9cadc7;
+    }
+
+    .v10 .panel,
+    .v10 .user-card,
+    .v10 .btn,
+    .v10 .field {
+      background: #111c31;
+      border-color: #22314e;
+      color: #e5edf8;
+    }
+
+    .v10 .user-card.selected {
+      background: #17294b;
+      border-color: #56b6f7;
+    }
+
+    .v10 .main {
+      background:
+        linear-gradient(180deg, rgba(64,124,255,.11), transparent 190px),
+        #0b1220;
+    }
+
+    .v10 .chip.active {
+      background: #173c70;
+      color: #9fd7ff;
+      box-shadow: inset 0 0 0 1px #2b7ebc;
+    }
+  </style>
+</head>
+<body>
+  <div class="gallery" id="root"></div>
+  <script>
+    const users = [
+      ["央视新闻", "456664753", "2394.8万", "+4003", "#1f3a8a"],
+      ["原神", "401742377", "2052.2万", "+637", "#c084fc"],
+      ["崩坏星穹铁道", "1340190821", "1226.5万", "0", "#f472b6"],
+      ["碧诗", "2", "139.6万", "+55", "#f9a8d4"],
+      ["白上吹雪Official", "332704117", "63.8万", "-44", "#93c5fd"],
+      ["罗翔说刑法", "517327498", "312.4万", "+891", "#34d399"],
+      ["影视飓风", "946974", "887.2万", "+1202", "#38bdf8"],
+      ["老师好我叫何同学", "163637592", "1180.4万", "+335", "#fb923c"],
+      ["中国国家地理", "36081646", "252.7万", "+102", "#84cc16"],
+      ["猫和老鼠官方", "15773384", "176.1万", "+72", "#f59e0b"]
+    ];
+
+    const selected = [0, 1, 2, 3];
+
+    function avatar(u) {
+      const name = u[0].slice(0, 2);
+      return `<div class="avatar" style="background:${u[4]}">${name}</div>`;
+    }
+
+    function userCard(i, compact = false, showFans = true) {
+      const u = users[i];
+      const isSelected = selected.includes(i);
+      const changeClass = u[3].startsWith("-") ? "delta down" : "delta";
+      return `
+        <div class="user-card ${compact ? "compact" : ""} ${isSelected ? "selected" : ""}">
+          ${avatar(u)}
+          <div class="user-meta">
+            <b>${u[0]}</b>
+            <span>${showFans ? u[2] + " " : ""}<em class="${changeClass}">${u[3]}</em></span>
+          </div>
+          ${isSelected ? `<div class="check">✓</div>` : ""}
+        </div>`;
+    }
+
+    function userStrip(count = 10, compact = false, showFans = true) {
+      return `<div class="user-strip">${users.slice(0, count).map((_, i) => userCard(i, compact, showFans)).join("")}</div>`;
+    }
+
+    function chartSvg(color, dense = false) {
+      const grid = [34, 72, 110, 148].map(y => `<line x1="44" y1="${y}" x2="520" y2="${y}" stroke="#e7edf5" stroke-width="1"/>`).join("");
+      const area = dense ? "M44,122 C112,90 166,106 230,76 C300,42 360,70 426,38 C472,20 500,34 520,24 L520,176 L44,176 Z" : "M44,130 C96,96 138,112 188,82 C246,48 298,66 346,58 C420,42 458,28 520,34 L520,176 L44,176 Z";
+      const line = dense ? "M44,122 C112,90 166,106 230,76 C300,42 360,70 426,38 C472,20 500,34 520,24" : "M44,130 C96,96 138,112 188,82 C246,48 298,66 346,58 C420,42 458,28 520,34";
+      return `
+        <svg class="chart-svg" viewBox="0 0 560 200" preserveAspectRatio="none">
+          ${grid}
+          <line x1="44" y1="176" x2="520" y2="176" stroke="#cbd5e1" stroke-width="1.5"/>
+          <path d="${area}" fill="${color}" opacity=".12"/>
+          <path d="${line}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="520" cy="${dense ? 24 : 34}" r="5" fill="${color}"/>
+          <text x="44" y="196" fill="#8792a2" font-size="12">09:00</text>
+          <text x="472" y="196" fill="#8792a2" font-size="12">23:00</text>
+        </svg>`;
+    }
+
+    function chartCard(i, dense = false) {
+      const u = users[i];
+      return `
+        <div class="chart-card panel">
+          <div class="chart-head">
+            <h3>${u[0]}</h3>
+            <span>${u[2]} · 近 24 小时 ${u[3]}</span>
+          </div>
+          ${chartSvg(u[4], dense)}
+        </div>`;
+    }
+
+    function layoutPreview(active = 4) {
+      const icon = n => `<span class="layout-icon l${n} ${active === n ? "active" : ""}">${Array.from({ length: n }).map(() => "<i></i>").join("")}</span>`;
+      return `<div class="layout-preview"><span>趋势布局</span>${[1, 2, 3, 4].map(icon).join("")}</div>`;
+    }
+
+    function side() {
+      return `
+        <aside class="side">
+          <div class="brand">
+            <div class="logo">SD</div>
+            <div><h2>Social Data Monitor</h2><p>数据监控后台</p></div>
+          </div>
+          <div class="nav">
+            <div><i class="dot"></i><span>Dashboard</span></div>
+            <div class="active"><i class="dot"></i><span>Bilibili</span></div>
+            <div><i class="dot"></i><span>平台管理</span></div>
+            <div><i class="dot"></i><span>采集任务</span></div>
+            <div><i class="dot"></i><span>数据中心</span></div>
+            <div><i class="dot"></i><span>分析看板</span></div>
+            <div><i class="dot"></i><span>系统设置</span></div>
+          </div>
+        </aside>`;
+    }
+
+    function shell(cls, index, title, desc, inner) {
+      return `
+        <section class="frame ${cls}">
+          <div class="app">
+            ${side()}
+            <main class="main">
+              <div class="top">
+                <div class="title">
+                  <h1>${String(index).padStart(2, "0")} ${title}</h1>
+                  <p>${desc}</p>
+                </div>
+                <div class="toolbar">
+                  <span class="chip">6 个用户</span>
+                  <span class="chip">4 个趋势</span>
+                  <button class="btn">刷新</button>
+                  <button class="btn primary">+ 添加监控</button>
+                </div>
+              </div>
+              ${inner}
+            </main>
+          </div>
+        </section>`;
+    }
+
+    function stats() {
+      return `
+        <div class="stat-row">
+          <div class="stat panel"><span>总粉丝</span><strong>58,769,394</strong></div>
+          <div class="stat panel"><span>最近净增</span><strong style="color:#0d8c62">+4,651</strong></div>
+          <div class="stat panel"><span>下次采集</span><strong>23:10:39</strong></div>
+          <div class="stat panel"><span>采集间隔</span><strong>2 秒 - 1 小时</strong></div>
+        </div>`;
+    }
+
+    function charts(n = 4, dense = false) {
+      return `<div class="charts n${n}">${selected.slice(0, n).map(i => chartCard(i, dense)).join("")}</div>`;
+    }
+
+    function v1() {
+      return shell("v1", 1, "横向收缩卡片", "用户块用 flex 等分横排，数量增加时自动压缩，选中的 4 人进入趋势区。",
+        `<div class="mini-form panel"><span>UID</span><div class="field">例如 2</div><span>间隔</span><div class="field small">3600</div><button class="btn primary">+ 添加</button><span style="flex:1"></span>${layoutPreview(4)}</div>
+         ${stats()}
+         <div class="section-head"><h2>监控用户</h2><span class="hint">横向展示，超出后先缩小卡片，再横向滚动</span></div>
+         ${userStrip(10, true)}
+         <div class="section-head"><h2>粉丝趋势</h2>${layoutPreview(4)}</div>
+         <div class="chart-area">${charts(4)}</div>`);
+    }
+
+    function v2() {
+      return shell("v2", 2, "顶部用户胶片", "把用户列表变成可横向浏览的胶片条，趋势图在下方按选择数量重排。",
+        `<div class="mini-form panel"><div class="field">输入 UID</div><div class="field small">3600 秒</div><button class="btn primary">添加监控</button><span style="flex:1"></span><span class="chip active">按粉丝排序</span><span class="chip">按增长排序</span></div>
+         <div class="section-head"><h2>选择趋势用户</h2><span class="hint">点击用户卡选入对比，最多 4 个</span></div>
+         ${userStrip(10, false)}
+         ${stats()}
+         <div class="section-head"><h2>趋势对比</h2>${layoutPreview(3)}</div>
+         <div class="chart-area">${charts(3, true)}</div>`);
+    }
+
+    function v3() {
+      return shell("v3", 3, "深色选择带", "用户选择条和趋势图分区形成强层级，适合长时间盯盘和快速扫视。",
+        `<div class="mini-form panel"><span class="chip active">全部用户</span><span class="chip">启用中</span><span class="chip">异常</span><span style="flex:1"></span>${layoutPreview(4)}</div>
+         <div class="section-head"><h2>监控用户</h2><span class="hint">卡片横向收缩，选中态高亮</span></div>
+         ${userStrip(10, true)}
+         <div class="stat-row">
+           <div class="stat panel"><span>启用</span><strong>6</strong></div>
+           <div class="stat panel"><span>今日净增</span><strong style="color:#0d8c62">+12,408</strong></div>
+           <div class="stat panel"><span>平均间隔</span><strong>38 分</strong></div>
+           <div class="stat panel"><span>异常</span><strong>0</strong></div>
+         </div>
+         <div class="chart-area">${charts(4, true)}</div>`);
+    }
+
+    function v4() {
+      return shell("v4", 4, "用户矩阵横排", "横向一屏展示更多用户，卡片缩为头像、名称、关键指标三层。",
+        `<div class="mini-form panel"><div class="field">UID 或昵称</div><button class="btn primary">添加监控</button><span style="flex:1"></span><span class="chip active">10 人横排</span><span class="chip">自动缩小</span></div>
+         ${userStrip(10, false)}
+         <div class="section-head"><h2>选择数据趋势</h2>${layoutPreview(2)}</div>
+         <div class="chart-area">${charts(2)}</div>
+         <div class="stat-row">
+          <div class="stat panel"><span>总粉丝</span><strong>58,769,394</strong></div>
+          <div class="stat panel"><span>最大增长</span><strong style="color:#0d8c62">央视 +4,003</strong></div>
+          <div class="stat panel"><span>最小增长</span><strong style="color:#c24141">白上 -44</strong></div>
+          <div class="stat panel"><span>下一轮</span><strong>23:10</strong></div>
+         </div>`);
+    }
+
+    function v5() {
+      return shell("v5", 5, "左侧对比篮", "横向用户条负责选择，左侧固定显示已选用户篮，右侧趋势区动态换列。",
+        `<div class="mini-form panel"><div class="field">输入 UID</div><div class="field small">采集间隔</div><button class="btn primary">添加</button><span style="flex:1"></span>${layoutPreview(3)}</div>
+         ${userStrip(10, true)}
+         <div class="content-grid">
+          <div class="focus-panel panel">
+            <div class="section-head"><h2>已选趋势</h2><span class="hint">3/4</span></div>
+            ${selected.slice(0,3).map(i => `<div class="focus-item">${avatar(users[i])}<div class="user-meta"><b>${users[i][0]}</b><span>${users[i][2]}</span></div><span class="delta">${users[i][3]}</span></div>`).join("")}
+            <button class="btn">清空选择</button>
+            <div class="stat panel"><span>对比总增量</span><strong style="color:#0d8c62">+4,695</strong></div>
+          </div>
+          <div class="chart-area">${charts(3)}</div>
+         </div>`);
+    }
+
+    function v6() {
+      return shell("v6", 6, "轻量工作台", "弱化大卡片，把添加、筛选、横向用户、趋势区组织成连续工作流。",
+        `<div class="mini-form panel"><div class="field">UID</div><div class="field small">3600</div><button class="btn primary">添加监控</button><span style="flex:1"></span><span class="chip active">粉丝数</span><span class="chip">净增</span><span class="chip">状态</span></div>
+         <div class="section-head"><h2>横向监控队列</h2><span class="hint">优先收缩名称和次要信息，保留头像、粉丝、变化</span></div>
+         ${userStrip(10, true)}
+         <div class="section-head"><h2>趋势图</h2>${layoutPreview(1)}</div>
+         <div class="chart-area">${charts(1, true)}</div>
+         ${stats()}`);
+    }
+
+    function v7() {
+      return shell("v7", 7, "密度优先运营台", "用户仍横向选择，下面用密集行补充操作列，适合需要频繁改间隔的场景。",
+        `<div class="mini-form panel"><div class="field">UID</div><button class="btn primary">添加</button><span style="flex:1"></span>${layoutPreview(4)}</div>
+         ${userStrip(10, true, false)}
+         <div class="chart-area" style="grid-template-columns: 1.15fr .85fr;">
+          <div class="mini-table">
+            <div class="row head"><span>用户</span><span>粉丝</span><span>变化</span><span>间隔</span><span>状态</span></div>
+            ${users.slice(0,7).map((u,i)=>`<div class="row"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u[0]}</b><span>${u[2]}</span><span class="${u[3].startsWith("-") ? "delta down":"delta"}">${u[3]}</span><span>${i===2 ? "2 秒":"3600 秒"}</span><span class="chip ${i<4?"active":""}">${i<4?"趋势中":"监控"}</span></div>`).join("")}
+          </div>
+          <div class="charts n4">${selected.map(i => chartCard(i, true)).join("")}</div>
+         </div>`);
+    }
+
+    function v8() {
+      return shell("v8", 8, "排行榜横带", "横向用户负责入口，主体把增长排行和趋势对比并列，适合运营判断优先级。",
+        `<div class="mini-form panel"><span class="chip active">今日增长</span><span class="chip">总粉丝</span><span class="chip">异常</span><span style="flex:1"></span>${layoutPreview(2)}</div>
+         ${userStrip(10, true)}
+         <div class="rank-band">
+          <div class="rank-list panel">
+            <div class="section-head"><h2>增长排行</h2><span class="hint">点击行加入趋势图</span></div>
+            ${users.slice(0,7).map((u,i)=>`<div class="rank-item"><b>${i+1}</b>${avatar(u)}<div class="user-meta"><b>${u[0]}</b><span>${u[2]}</span></div><span class="${u[3].startsWith("-") ? "delta down":"delta"}">${u[3]}</span></div>`).join("")}
+          </div>
+          <div class="chart-area">${charts(2, true)}</div>
+         </div>`);
+    }
+
+    function v9() {
+      return shell("v9", 9, "采集节奏视图", "横向用户块同时显示采集进度，趋势图选择和采集状态放在同一认知路径上。",
+        `<div class="mini-form panel"><div class="field">UID</div><button class="btn primary">添加</button><span style="flex:1"></span><span class="chip active">下一次采集优先</span><span class="chip">按增量</span></div>
+         <div class="timeline-strip">
+          ${users.slice(0,8).map((u,i)=>`<div class="time-card ${selected.includes(i) ? "selected" : ""}"><div style="display:flex;gap:8px;align-items:center;min-width:0">${avatar(u)}<div class="user-meta"><b>${u[0]}</b><span>${i===2 ? "2 秒后":"38 分后"}</span></div></div><div class="bar"><i style="width:${90-i*8}%"></i></div><span class="${u[3].startsWith("-") ? "delta down":"delta"}">${u[3]}</span></div>`).join("")}
+         </div>
+         <div class="section-head"><h2>趋势图</h2>${layoutPreview(3)}</div>
+         <div class="chart-area">${charts(3)}</div>
+         <div class="stat-row">
+          <div class="stat panel"><span>即将采集</span><strong>崩坏星穹铁道</strong></div>
+          <div class="stat panel"><span>最高频率</span><strong>2 秒</strong></div>
+          <div class="stat panel"><span>队列用户</span><strong>8</strong></div>
+          <div class="stat panel"><span>异常</span><strong>0</strong></div>
+         </div>`);
+    }
+
+    function v10() {
+      return shell("v10", 10, "深色监控大屏", "保留后台操作能力，但整体更像实时监控台，适合外接屏或夜间使用。",
+        `<div class="mini-form panel"><div class="field">UID</div><div class="field small">3600</div><button class="btn primary">添加</button><span style="flex:1"></span><span class="chip active">实时</span><span class="chip">24h</span><span class="chip">7d</span></div>
+         <div class="section-head"><h2>监控用户</h2><span class="hint">横向卡片自适应宽度，最多 4 个进入图表</span></div>
+         ${userStrip(10, true)}
+         <div class="stat-row">
+          <div class="stat panel"><span>总粉丝</span><strong>58,769,394</strong></div>
+          <div class="stat panel"><span>实时净增</span><strong style="color:#33d69f">+4,651</strong></div>
+          <div class="stat panel"><span>采集成功率</span><strong>100%</strong></div>
+          <div class="stat panel"><span>下次采集</span><strong>23:10:39</strong></div>
+         </div>
+         <div class="section-head"><h2>趋势图</h2>${layoutPreview(4)}</div>
+         <div class="chart-area">${charts(4, true)}</div>`);
+    }
+
+    const versions = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10];
+    const params = new URLSearchParams(location.search);
+    const current = Number(params.get("v"));
+    const root = document.getElementById("root");
+    if (current >= 1 && current <= 10) {
+      document.body.classList.add("single");
+      root.innerHTML = versions[current - 1]();
+    } else {
+      root.innerHTML = versions.map(fn => fn()).join("");
+    }
+  </script>
+</body>
+</html>
