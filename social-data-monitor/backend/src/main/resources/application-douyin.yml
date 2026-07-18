@@ -1,0 +1,16 @@
+app:
+  douyin:
+    auth:
+      enabled: ${SOCIAL_MONITOR_DOUYIN_AUTH_ENABLED:false}
+      oauth-mode: ${SOCIAL_MONITOR_DOUYIN_OAUTH_MODE:disabled}
+      oauth-client-key: ${SOCIAL_MONITOR_DOUYIN_OAUTH_CLIENT_KEY:}
+      oauth-client-secret: ${SOCIAL_MONITOR_DOUYIN_OAUTH_CLIENT_SECRET:}
+      oauth-redirect-uri: ${SOCIAL_MONITOR_DOUYIN_OAUTH_REDIRECT_URI:}
+      oauth-scope: ${SOCIAL_MONITOR_DOUYIN_OAUTH_SCOPE:user_info}
+      credential-encryption-key: ${SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY:}
+      worker-base-url: ${SOCIAL_MONITOR_DOUYIN_WORKER_BASE_URL:http://127.0.0.1:8787}
+      worker-token: ${SOCIAL_MONITOR_DOUYIN_WORKER_TOKEN:}
+      qr-expire-seconds: ${SOCIAL_MONITOR_DOUYIN_QR_EXPIRE_SECONDS:180}
+      poll-interval-ms: ${SOCIAL_MONITOR_DOUYIN_POLL_INTERVAL_MS:1500}
+      connect-timeout-ms: ${SOCIAL_MONITOR_DOUYIN_CONNECT_TIMEOUT_MS:5000}
+      request-timeout-ms: ${SOCIAL_MONITOR_DOUYIN_REQUEST_TIMEOUT_MS:30000}
