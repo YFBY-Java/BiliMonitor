@@ -6,3 +6,10 @@ declare module '*.vue' {
   export default component
 }
 
+interface ImportMetaEnv {
+  readonly VITE_DOUYIN_ENABLED?: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
