@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$preserveExisting = $env:SOCIAL_MONITOR_ENV_PRESERVE_EXISTING -match "^(?i:true|1|yes|on)$"
 
 $projectRoot = (Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
 if ([System.IO.Path]::IsPathRooted($Path)) {
@@ -42,6 +43,10 @@ foreach ($rawLine in Get-Content -LiteralPath $fullPath) {
   $value = $line.Substring($separatorIndex + 1)
   if (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'"))) {
     $value = $value.Substring(1, $value.Length - 2)
+  }
+
+  if ($preserveExisting -and $null -ne [Environment]::GetEnvironmentVariable($key, "Process")) {
+    continue
   }
 
   [Environment]::SetEnvironmentVariable($key, $value, "Process")

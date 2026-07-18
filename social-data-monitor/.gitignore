@@ -8,6 +8,9 @@ backend/.mvn/wrapper/_extract/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+douyin-worker/node_modules/
+douyin-worker/test-results/
+douyin-worker/.cache/
 
 # Env
 .env

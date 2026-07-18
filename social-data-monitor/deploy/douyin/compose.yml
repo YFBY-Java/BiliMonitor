@@ -1,0 +1,81 @@
+name: social-data-monitor-douyin
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${SOCIAL_MONITOR_DB_NAME:-social_data_monitor}
+      POSTGRES_USER: ${SOCIAL_MONITOR_DB_USERNAME:-social_monitor}
+      POSTGRES_PASSWORD: ${SOCIAL_MONITOR_DB_PASSWORD:-social_monitor}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: deploy/douyin/worker.Dockerfile
+    init: true
+    ipc: host
+    environment:
+      DOUYIN_WORKER_HOST: 0.0.0.0
+      DOUYIN_WORKER_PORT: 8787
+      DOUYIN_WORKER_HEADLESS: "true"
+      DOUYIN_WORKER_LOGIN_URL: ${DOUYIN_WORKER_LOGIN_URL:-https://www.douyin.com/}
+      DOUYIN_WORKER_VALIDATION_URL: ${DOUYIN_WORKER_VALIDATION_URL:-https://www.douyin.com/user/self?from_tab_name=main}
+      DOUYIN_WORKER_SESSION_TTL_SECONDS: ${DOUYIN_WORKER_SESSION_TTL_SECONDS:-180}
+      DOUYIN_WORKER_COOKIE_HEADER_ORIGINS: ${DOUYIN_WORKER_COOKIE_HEADER_ORIGINS:-https://www.douyin.com,https://open.douyin.com}
+      SOCIAL_MONITOR_DOUYIN_WORKER_TOKEN: ${SOCIAL_MONITOR_DOUYIN_WORKER_TOKEN:-}
+    ports:
+      - "127.0.0.1:${DOUYIN_WORKER_PORT:-8787}:8787"
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/douyin/backend.Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,douyin
+      SOCIAL_MONITOR_DB_URL: jdbc:postgresql://postgres:5432/${SOCIAL_MONITOR_DB_NAME:-social_data_monitor}
+      SOCIAL_MONITOR_DB_USERNAME: ${SOCIAL_MONITOR_DB_USERNAME:-social_monitor}
+      SOCIAL_MONITOR_DB_PASSWORD: ${SOCIAL_MONITOR_DB_PASSWORD:-social_monitor}
+      SOCIAL_MONITOR_SECURITY_DEV_USERNAME: ${SOCIAL_MONITOR_SECURITY_DEV_USERNAME:-}
+      SOCIAL_MONITOR_SECURITY_DEV_PASSWORD: ${SOCIAL_MONITOR_SECURITY_DEV_PASSWORD:-}
+      SOCIAL_MONITOR_CORS_ALLOWED_ORIGINS: ${SOCIAL_MONITOR_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      SOCIAL_MONITOR_CREDENTIAL_ENCRYPTION_KEY: ${SOCIAL_MONITOR_CREDENTIAL_ENCRYPTION_KEY:-}
+      SOCIAL_MONITOR_DOUYIN_AUTH_ENABLED: "true"
+      SOCIAL_MONITOR_DOUYIN_OAUTH_MODE: ${SOCIAL_MONITOR_DOUYIN_OAUTH_MODE:-disabled}
+      SOCIAL_MONITOR_DOUYIN_OAUTH_CLIENT_KEY: ${SOCIAL_MONITOR_DOUYIN_OAUTH_CLIENT_KEY:-}
+      SOCIAL_MONITOR_DOUYIN_OAUTH_CLIENT_SECRET: ${SOCIAL_MONITOR_DOUYIN_OAUTH_CLIENT_SECRET:-}
+      SOCIAL_MONITOR_DOUYIN_OAUTH_REDIRECT_URI: ${SOCIAL_MONITOR_DOUYIN_OAUTH_REDIRECT_URI:-http://127.0.0.1:5173/api/douyin/auth/oauth/callback}
+      SOCIAL_MONITOR_DOUYIN_OAUTH_SCOPE: ${SOCIAL_MONITOR_DOUYIN_OAUTH_SCOPE:-user_info}
+      SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY: ${SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY:-}
+      SOCIAL_MONITOR_DOUYIN_WORKER_BASE_URL: http://worker:8787
+      SOCIAL_MONITOR_DOUYIN_WORKER_TOKEN: ${SOCIAL_MONITOR_DOUYIN_WORKER_TOKEN:-}
+      SOCIAL_MONITOR_DOUYIN_QR_EXPIRE_SECONDS: ${SOCIAL_MONITOR_DOUYIN_QR_EXPIRE_SECONDS:-180}
+      SOCIAL_MONITOR_DOUYIN_POLL_INTERVAL_MS: ${SOCIAL_MONITOR_DOUYIN_POLL_INTERVAL_MS:-1500}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${SOCIAL_MONITOR_BACKEND_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: deploy/douyin/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+        VITE_DOUYIN_ENABLED: "true"
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:${SOCIAL_MONITOR_FRONTEND_PORT:-5173}:80"
+
+volumes:
+  postgres-data:

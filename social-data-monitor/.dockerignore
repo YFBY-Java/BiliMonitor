@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+.dev-data
+.dev-tools
+backend/target
+backend/.mvn/wrapper/apache-maven-*
+frontend/node_modules
+frontend/dist
+douyin-worker/node_modules
+douyin-worker/test-results
+**/*.log
+**/*.err.log
