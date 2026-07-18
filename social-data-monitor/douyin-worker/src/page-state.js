@@ -28,10 +28,7 @@ const VALIDATING_PATTERNS = [
 const AUTHENTICATED_COOKIE_NAMES = new Set([
   'sessionid',
   'sessionid_ss',
-  'sid_guard',
-  'sid_tt',
-  'uid_tt',
-  'uid_tt_ss'
+  'sid_guard'
 ])
 
 function matchesAny(value, patterns) {

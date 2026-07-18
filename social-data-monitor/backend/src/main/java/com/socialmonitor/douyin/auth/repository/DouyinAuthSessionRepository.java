@@ -53,6 +53,11 @@ public class DouyinAuthSessionRepository {
                 Map.of("loginId", loginId));
     }
 
+    public Optional<DouyinAuthSession> findByLoginIdForUpdate(UUID loginId) {
+        return query("SELECT * FROM douyin_auth_session WHERE login_id = :loginId FOR UPDATE",
+                Map.of("loginId", loginId));
+    }
+
     public Optional<DouyinAuthSession> findByState(String state) {
         if (state == null || state.isBlank()) {
             return Optional.empty();
