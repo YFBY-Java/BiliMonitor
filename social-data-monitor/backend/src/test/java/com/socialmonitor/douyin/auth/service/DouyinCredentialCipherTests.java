@@ -47,6 +47,29 @@ class DouyinCredentialCipherTests {
                 .hasMessageContaining("must decode to 32 bytes");
     }
 
+    @Test
+    void refusesToStartWithAnEphemeralKeyWhenDouyinPersistenceIsEnabled() {
+        DouyinCredentialCipher cipher = cipherWithKeyWithoutInitialization("");
+
+        assertThatThrownBy(cipher::initializeKey)
+                .hasMessageContaining("must be configured");
+    }
+
+    @Test
+    void aFreshCipherInstanceCanDecryptStateSavedBeforeBackendRestart() throws Exception {
+        DouyinCredentialCipher beforeRestart = cipherWithKey(fixedKey());
+        Map<String, Object> encrypted = beforeRestart.encrypt(Map.of(
+                "cookies", List.of(Map.of("name", "sessionid_ss", "value", "persisted"))
+        ));
+        DouyinCredentialCipher afterRestart = cipherWithKey(fixedKey());
+
+        Map<String, Object> restored = afterRestart.decrypt(objectMapper.writeValueAsString(encrypted));
+
+        assertThat(restored).isEqualTo(Map.of(
+                "cookies", List.of(Map.of("name", "sessionid_ss", "value", "persisted"))
+        ));
+    }
+
     private DouyinCredentialCipher cipherWithKey(String key) {
         DouyinCredentialCipher cipher = cipherWithKeyWithoutInitialization(key);
         cipher.initializeKey();

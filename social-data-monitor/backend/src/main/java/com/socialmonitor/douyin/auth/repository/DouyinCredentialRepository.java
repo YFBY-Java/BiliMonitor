@@ -55,6 +55,63 @@ public class DouyinCredentialRepository {
                   AND status = 'ACTIVE'
                 """, Map.of("platformId", platformId, "authType", authType));
 
+        return insertActive(platformId, authType, plainPayload, expiresAt);
+    }
+
+    @Transactional
+    public Optional<DouyinStoredCredential> saveActiveIfCurrent(
+            String authType,
+            Long expectedCredentialId,
+            Map<String, Object> plainPayload,
+            OffsetDateTime expiresAt
+    ) {
+        requireSupportedAuthType(authType);
+        Long platformId = platformId();
+        acquireCredentialLock(platformId, authType);
+        List<Long> activeIds = jdbcTemplate.queryForList("""
+                SELECT id
+                FROM platform_credential
+                WHERE platform_id = :platformId
+                  AND auth_type = :authType
+                  AND status = 'ACTIVE'
+                ORDER BY updated_at DESC, id DESC
+                LIMIT 1
+                """, Map.of("platformId", platformId, "authType", authType), Long.class);
+        if (activeIds.isEmpty() || !activeIds.get(0).equals(expectedCredentialId)) {
+            return Optional.empty();
+        }
+
+        jdbcTemplate.update("""
+                UPDATE platform_credential
+                SET status = 'REVOKED', updated_at = now()
+                WHERE id = :expectedCredentialId
+                  AND platform_id = :platformId
+                  AND auth_type = :authType
+                  AND status = 'ACTIVE'
+                """, Map.of(
+                "expectedCredentialId", expectedCredentialId,
+                "platformId", platformId,
+                "authType", authType
+        ));
+        return Optional.of(insertActive(platformId, authType, plainPayload, expiresAt));
+    }
+
+    @Transactional
+    public void acquireOperationLock(String authType, String operation) {
+        requireSupportedAuthType(authType);
+        if (operation == null || operation.isBlank()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Douyin credential operation is required.");
+        }
+        acquireCredentialLock(platformId(), authType + ":" + operation.trim());
+    }
+
+    private DouyinStoredCredential insertActive(
+            Long platformId,
+            String authType,
+            Map<String, Object> plainPayload,
+            OffsetDateTime expiresAt
+    ) {
+
         Map<String, Object> encrypted = cipher.encrypt(plainPayload);
         DouyinStoredCredential stored = jdbcTemplate.queryForObject("""
                 INSERT INTO platform_credential (

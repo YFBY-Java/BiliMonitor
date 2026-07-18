@@ -78,4 +78,27 @@ describe('useQrPolling', () => {
     expect(onResult).not.toHaveBeenCalled()
     expect(polling.active.value).toBe(false)
   })
+
+  it('reschedules a reopened generation while the previous request is still pending', async () => {
+    vi.useFakeTimers()
+    const previous = deferred<Status>()
+    const poll = vi.fn()
+      .mockReturnValueOnce(previous.promise)
+      .mockResolvedValueOnce({ status: 'WAITING' })
+    const polling = useQrPolling({ poll, intervalMs: 500 })
+
+    polling.start()
+    await vi.advanceTimersByTimeAsync(0)
+    polling.stop()
+    polling.start()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(poll).toHaveBeenCalledTimes(1)
+
+    previous.resolve({ status: 'WAITING' })
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
+
+    expect(poll).toHaveBeenCalledTimes(2)
+    polling.stop()
+  })
 })

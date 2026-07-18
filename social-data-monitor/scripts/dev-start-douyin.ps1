@@ -51,6 +51,11 @@ function Wait-ForHttp {
 
 & (Join-Path $PSScriptRoot "load-env.ps1") -Path (Join-Path $root ".env.local")
 
+if ([string]::IsNullOrWhiteSpace($env:SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY) -or
+    $env:SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY -eq "REPLACE_WITH_BASE64_32_BYTE_KEY") {
+  throw "Set SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY in .env.local to a base64-encoded 32-byte key before starting Douyin auth."
+}
+
 # These overrides are scoped to this launcher and inherited by its child processes.
 $env:SPRING_PROFILES_ACTIVE = "dev,douyin"
 $env:SOCIAL_MONITOR_DOUYIN_AUTH_ENABLED = "true"

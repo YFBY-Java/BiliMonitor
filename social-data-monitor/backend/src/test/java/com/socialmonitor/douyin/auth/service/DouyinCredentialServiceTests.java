@@ -1,6 +1,7 @@
 package com.socialmonitor.douyin.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -91,6 +92,29 @@ class DouyinCredentialServiceTests {
                 org.mockito.ArgumentMatchers.any()
         );
         verify(sessions, never()).completeSuccess(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        );
+    }
+
+    @Test
+    void revalidationCannotReplaceAWebCredentialThatChangedWhileTheWorkerWasRunning() {
+        Map<String, Object> bundle = Map.of(
+                "authType", "DOUYIN_WEB_SESSION",
+                "cookies", List.of()
+        );
+        when(credentials.saveActiveIfCurrent(
+                "DOUYIN_WEB_SESSION",
+                41L,
+                bundle,
+                null
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.replaceActiveWeb(41L, bundle))
+                .hasMessageContaining("changed while validation");
+
+        verify(credentials, never()).saveActive(
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any()
         );

@@ -46,10 +46,25 @@ const mockLoginPage = `<!doctype html>
 </body>
 </html>`
 
+const authenticatedPage = `<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>Douyin account</title></head>
+<body>
+  <main data-douyin-authenticated="true">
+    <h1 data-e2e="user-name">own-douyin-account</h1>
+    <button data-e2e="logout" type="button">Log out</button>
+  </main>
+</body>
+</html>`
+
 test('captures and restores a complete login bundle with real Chromium contexts', async t => {
-  const web = createServer((_request, response) => {
+  const web = createServer((request, response) => {
+    const url = new URL(request.url ?? '/', 'http://local.test')
+    const hasAcceptedSession = String(request.headers.cookie ?? '').includes('sessionid_ss=raw-session')
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-    response.end(mockLoginPage)
+    response.end(url.pathname === '/user/self' && hasAcceptedSession
+      ? authenticatedPage
+      : mockLoginPage)
   })
   web.listen(0, '127.0.0.1')
   await once(web, 'listening')
@@ -90,4 +105,13 @@ test('captures and restores a complete login bundle with real Chromium contexts'
   const validated = await driver.validateBundle(captured.bundle)
   assert.equal(validated.valid, true)
   assert.equal(validated.bundle.rawWorkerResult.validation.status, 'SUCCESS')
+
+  const staleBundle = structuredClone(captured.bundle)
+  for (const cookie of staleBundle.storageState.cookies) {
+    if (cookie.name === 'sessionid_ss') cookie.value = 'stale-session'
+  }
+  const rejected = await driver.validateBundle(staleBundle)
+  assert.equal(rejected.valid, false)
+  assert.equal(rejected.details.authenticatedCookiePresent, true)
+  assert.equal(rejected.details.identityMarker, null)
 })

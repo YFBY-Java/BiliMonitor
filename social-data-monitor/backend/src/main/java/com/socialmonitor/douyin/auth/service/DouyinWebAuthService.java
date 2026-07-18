@@ -148,6 +148,10 @@ public class DouyinWebAuthService {
         try {
             status = worker.status(requireWorkerSessionId(session));
         } catch (BusinessException exception) {
+            DouyinQrStatusView completed = completedByAnotherPoll(loginId);
+            if (completed != null) {
+                return completed;
+            }
             Map<String, Object> failure = failureResult("WORKER_UNAVAILABLE", exception);
             sessions.completeFailure(loginId, "WORKER_UNAVAILABLE", exception.getMessage(), failure);
             throw exception;
@@ -185,6 +189,10 @@ public class DouyinWebAuthService {
                     stored
             );
         } catch (RuntimeException exception) {
+            DouyinQrStatusView completed = completedByAnotherPoll(loginId);
+            if (completed != null) {
+                return completed;
+            }
             Map<String, Object> failure = failureResult("WEB_SESSION_CAPTURE_FAILED", exception);
             failure.put("workerStatus", status.rawResult());
             sessions.completeFailure(
@@ -212,7 +220,10 @@ public class DouyinWebAuthService {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR,
                     "Douyin Worker validated the state without returning the complete bundle.");
         }
-        DouyinStoredCredential refreshed = credentials.replaceActiveWeb(validation.bundle());
+        DouyinStoredCredential refreshed = credentials.replaceActiveWeb(
+                current.credentialId(),
+                validation.bundle()
+        );
         return new DouyinValidationView(
                 true,
                 validation.message(),
@@ -227,6 +238,20 @@ public class DouyinWebAuthService {
         } catch (BusinessException exception) {
             return new WorkerHealth("DOWN", failureResult("WORKER_UNAVAILABLE", exception));
         }
+    }
+
+    private DouyinQrStatusView completedByAnotherPoll(UUID loginId) {
+        DouyinAuthSession latest = sessions.findByLoginId(loginId).orElse(null);
+        if (latest == null || !"SUCCESS".equals(latest.status())) {
+            return null;
+        }
+        return statusView(
+                latest,
+                "SUCCESS",
+                latest.errorMessage(),
+                latest.rawResult(),
+                credentials.requireActiveWeb()
+        );
     }
 
     private DouyinAuthSession requireWebSession(UUID loginId) {

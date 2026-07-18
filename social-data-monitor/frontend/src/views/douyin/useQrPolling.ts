@@ -62,7 +62,11 @@ export function useQrPolling<T extends QrPollingStatus>(options: QrPollingOption
   }
 
   async function pollOnce(requestGeneration: number) {
-    if (!active.value || requestGeneration !== generation || currentRequest !== undefined) return
+    if (!active.value || requestGeneration !== generation) return
+    if (currentRequest !== undefined) {
+      schedule(intervalMs, requestGeneration)
+      return
+    }
 
     const requestId = ++requestSequence
     currentRequest = requestId

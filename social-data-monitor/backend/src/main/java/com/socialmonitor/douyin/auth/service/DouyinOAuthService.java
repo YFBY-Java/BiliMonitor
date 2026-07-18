@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,7 @@ public class DouyinOAuthService {
     private final DouyinAuthSessionRepository sessions;
     private final DouyinCredentialRepository credentials;
     private final DouyinOAuthClient client;
+    private final DouyinCredentialOperationTransaction credentialTransaction;
     private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -45,9 +47,10 @@ public class DouyinOAuthService {
             DouyinAuthProperties properties,
             DouyinAuthSessionRepository sessions,
             DouyinCredentialRepository credentials,
-            DouyinOAuthClient client
+            DouyinOAuthClient client,
+            DouyinCredentialOperationTransaction credentialTransaction
     ) {
-        this(properties, sessions, credentials, client, Clock.systemUTC());
+        this(properties, sessions, credentials, client, credentialTransaction, Clock.systemUTC());
     }
 
     DouyinOAuthService(
@@ -55,12 +58,14 @@ public class DouyinOAuthService {
             DouyinAuthSessionRepository sessions,
             DouyinCredentialRepository credentials,
             DouyinOAuthClient client,
+            DouyinCredentialOperationTransaction credentialTransaction,
             Clock clock
     ) {
         this.properties = properties;
         this.sessions = sessions;
         this.credentials = credentials;
         this.client = client;
+        this.credentialTransaction = credentialTransaction;
         this.clock = clock;
     }
 
@@ -123,17 +128,27 @@ public class DouyinOAuthService {
     public DouyinStoredCredential complete(String state, Map<String, List<String>> callbackParameters) {
         DouyinAuthSession session = sessions.findByState(state)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BAD_REQUEST, "Douyin OAuth state is invalid."));
-        try {
-            requireSessionState(session, first(callbackParameters, "state"));
-            requireNotExpired(session);
-            if ("SUCCESS".equals(session.status())) {
-                throw new BusinessException(ErrorCode.BAD_REQUEST, "Douyin OAuth session is already consumed.");
+        requireSessionState(session, first(callbackParameters, "state"));
+        requireNotExpired(session);
+        if ("SUCCESS".equals(session.status())) {
+            return completedCredential(session);
+        }
+        Map<String, Object> rawCallback = rawCallback(callbackParameters);
+        if (!sessions.tryClaimForValidation(session.loginId(), rawCallback)) {
+            DouyinAuthSession latest = sessions.findByLoginId(session.loginId()).orElse(session);
+            if ("SUCCESS".equals(latest.status())) {
+                return completedCredential(latest);
             }
+            throw new BusinessException(
+                    ErrorCode.BAD_REQUEST,
+                    "Douyin OAuth session is already being processed or cannot be completed."
+            );
+        }
+        try {
             String code = first(callbackParameters, "code");
             if (code == null || code.isBlank()) {
                 throw new BusinessException(ErrorCode.BAD_REQUEST, "Douyin OAuth callback does not contain code.");
             }
-            sessions.updateStatus(session.loginId(), "VALIDATING", rawCallback(callbackParameters));
 
             Map<String, Object> tokenResponse = "mock".equals(session.providerMode())
                     ? mockTokenResponse(session.loginId())
@@ -178,12 +193,17 @@ public class DouyinOAuthService {
             sessions.completeSuccess(session.loginId(), rawResult);
             return stored;
         } catch (BusinessException exception) {
-            sessions.completeFailure(
-                    session.loginId(),
-                    "OAUTH_TOKEN_EXCHANGE_FAILED",
-                    exception.getMessage(),
-                    rawCallback(callbackParameters)
-            );
+            boolean completedByAnotherRequest = sessions.findByLoginId(session.loginId())
+                    .map(latest -> "SUCCESS".equals(latest.status()))
+                    .orElse(false);
+            if (!completedByAnotherRequest) {
+                sessions.completeFailure(
+                        session.loginId(),
+                        "OAUTH_TOKEN_EXCHANGE_FAILED",
+                        exception.getMessage(),
+                        rawCallback
+                );
+            }
             throw exception;
         }
     }
@@ -193,13 +213,8 @@ public class DouyinOAuthService {
         if ("disabled".equals(mode)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Douyin OAuth is disabled.");
         }
-        DouyinStoredCredential active = credentials.findActive(DouyinAuthConstants.OAUTH_AUTH_TYPE)
+        DouyinStoredCredential requestedCredential = credentials.findActive(DouyinAuthConstants.OAUTH_AUTH_TYPE)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No active Douyin OAuth credential."));
-        String refreshToken = requiredString(
-                active.payload(),
-                "refreshToken",
-                "Active Douyin OAuth credential has no refreshToken."
-        );
         OffsetDateTime now = now();
         UUID loginId = UUID.randomUUID();
         sessions.create(new DouyinAuthSession(
@@ -213,55 +228,106 @@ public class DouyinOAuthService {
                 null,
                 null,
                 null,
-                Map.of("credentialId", active.credentialId()),
+                Map.of("credentialId", requestedCredential.credentialId()),
                 now,
                 now
         ));
         try {
-            Map<String, Object> refreshResponse = "mock".equals(mode)
-                    ? mockRefreshResponse(active)
-                    : client.refreshAccessToken(refreshToken);
-            Map<String, Object> tokenData = successfulData(refreshResponse, "Douyin access token refresh failed.");
-            String accessToken = requiredString(tokenData, "access_token", "Refresh response has no access_token.");
-            String nextRefreshToken = Optional.ofNullable(string(tokenData.get("refresh_token")))
-                    .filter(value -> !value.isBlank())
-                    .orElse(refreshToken);
-            OffsetDateTime expiresAt = plusSeconds(now, tokenData.get("expires_in"));
-            OffsetDateTime refreshExpiresAt = plusSeconds(now, tokenData.get("refresh_expires_in"));
-
-            Map<String, Object> payload = new LinkedHashMap<>(active.payload());
-            payload.put("accessToken", accessToken);
-            payload.put("refreshToken", nextRefreshToken);
-            payload.put("openId", Optional.ofNullable(string(tokenData.get("open_id")))
-                    .orElse(string(active.payload().get("openId"))));
-            payload.put("scope", tokenData.containsKey("scope")
-                    ? scope(tokenData.get("scope"))
-                    : active.payload().get("scope"));
-            payload.put("expiresAt", text(expiresAt));
-            payload.put("refreshExpiresAt", text(refreshExpiresAt));
-            payload.put("lastRefreshedAt", now.toString());
-            payload.put("refreshedFromCredentialId", active.credentialId());
-            payload.put("rawRefreshResponse", refreshResponse);
-
-            DouyinStoredCredential stored = credentials.saveActive(
+            return credentialTransaction.execute(
                     DouyinAuthConstants.OAUTH_AUTH_TYPE,
-                    payload,
-                    expiresAt
+                    "refresh",
+                    () -> refreshInsideTransaction(mode, requestedCredential, loginId)
             );
-            sessions.completeSuccess(loginId, Map.of(
-                    "credentialId", stored.credentialId(),
-                    "rawRefreshResponse", refreshResponse
-            ));
-            return stored;
-        } catch (BusinessException exception) {
+        } catch (RuntimeException exception) {
+            String failureMessage = Optional.ofNullable(exception.getMessage())
+                    .filter(value -> !value.isBlank())
+                    .orElse(exception.getClass().getName());
             sessions.completeFailure(
                     loginId,
                     "OAUTH_TOKEN_EXCHANGE_FAILED",
-                    exception.getMessage(),
-                    Map.of("credentialId", active.credentialId(), "error", exception.getMessage())
+                    failureMessage,
+                    Map.of(
+                            "credentialId", requestedCredential.credentialId(),
+                            "error", failureMessage,
+                            "errorType", exception.getClass().getName()
+                    )
             );
             throw exception;
         }
+    }
+
+    private DouyinStoredCredential refreshInsideTransaction(
+            String mode,
+            DouyinStoredCredential requestedCredential,
+            UUID loginId
+    ) {
+        DouyinStoredCredential active = credentials.findActive(DouyinAuthConstants.OAUTH_AUTH_TYPE)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "No active Douyin OAuth credential."));
+        if (!Objects.equals(requestedCredential.credentialId(), active.credentialId())) {
+            sessions.completeSuccess(loginId, Map.of(
+                    "credentialId", active.credentialId(),
+                    "sourceCredentialId", requestedCredential.credentialId(),
+                    "coalesced", true
+            ));
+            return active;
+        }
+
+        String refreshToken = requiredString(
+                active.payload(),
+                "refreshToken",
+                "Active Douyin OAuth credential has no refreshToken."
+        );
+        OffsetDateTime refreshedAt = now();
+        Map<String, Object> refreshResponse = "mock".equals(mode)
+                ? mockRefreshResponse(active)
+                : client.refreshAccessToken(refreshToken);
+        Map<String, Object> tokenData = successfulData(refreshResponse, "Douyin access token refresh failed.");
+        String accessToken = requiredString(tokenData, "access_token", "Refresh response has no access_token.");
+        String nextRefreshToken = Optional.ofNullable(string(tokenData.get("refresh_token")))
+                .filter(value -> !value.isBlank())
+                .orElse(refreshToken);
+        OffsetDateTime expiresAt = plusSeconds(refreshedAt, tokenData.get("expires_in"));
+        OffsetDateTime refreshExpiresAt = plusSeconds(refreshedAt, tokenData.get("refresh_expires_in"));
+
+        Map<String, Object> payload = new LinkedHashMap<>(active.payload());
+        payload.put("accessToken", accessToken);
+        payload.put("refreshToken", nextRefreshToken);
+        payload.put("openId", Optional.ofNullable(string(tokenData.get("open_id")))
+                .orElse(string(active.payload().get("openId"))));
+        payload.put("scope", tokenData.containsKey("scope")
+                ? scope(tokenData.get("scope"))
+                : active.payload().get("scope"));
+        payload.put("expiresAt", text(expiresAt));
+        payload.put("refreshExpiresAt", text(refreshExpiresAt));
+        payload.put("lastRefreshedAt", refreshedAt.toString());
+        payload.put("refreshedFromCredentialId", active.credentialId());
+        payload.put("rawRefreshResponse", refreshResponse);
+
+        Optional<DouyinStoredCredential> saved = credentials.saveActiveIfCurrent(
+                DouyinAuthConstants.OAUTH_AUTH_TYPE,
+                active.credentialId(),
+                payload,
+                expiresAt
+        );
+        if (saved.isEmpty()) {
+            DouyinStoredCredential current = credentials.findActive(DouyinAuthConstants.OAUTH_AUTH_TYPE)
+                    .orElseThrow(() -> new BusinessException(
+                            ErrorCode.NOT_FOUND,
+                            "Active Douyin OAuth credential changed during refresh and is no longer available."
+                    ));
+            sessions.completeSuccess(loginId, Map.of(
+                    "credentialId", current.credentialId(),
+                    "coalesced", true,
+                    "discardedRawRefreshResponse", refreshResponse
+            ));
+            return current;
+        }
+        DouyinStoredCredential stored = saved.get();
+        sessions.completeSuccess(loginId, Map.of(
+                "credentialId", stored.credentialId(),
+                "rawRefreshResponse", refreshResponse
+        ));
+        return stored;
     }
 
     private Map<String, Object> initialPayload(
@@ -305,6 +371,22 @@ public class DouyinOAuthService {
         payload.put("authorizedAt", authorizedAt.toString());
         payload.put("lastRefreshedAt", null);
         return payload;
+    }
+
+    private DouyinStoredCredential completedCredential(DouyinAuthSession session) {
+        Object credentialId = session.rawResult().get("credentialId");
+        if (!(credentialId instanceof Number number)) {
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    "Completed Douyin OAuth session has no credential reference."
+            );
+        }
+        return credentials.findById(number.longValue())
+                .filter(credential -> DouyinAuthConstants.OAUTH_AUTH_TYPE.equals(credential.authType()))
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.NOT_FOUND,
+                        "Completed Douyin OAuth credential is no longer available."
+                ));
     }
 
     private Map<String, Object> fetchUserInfoWhenAuthorized(

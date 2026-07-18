@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,6 +115,48 @@ class DouyinCredentialRepositoryTests {
         verify(jdbcTemplate).update(
                 contains("SET status = 'REVOKED'"),
                 eq(Map.of("platformId", 2L, "authType", DouyinAuthConstants.WEB_AUTH_TYPE))
+        );
+    }
+
+    @Test
+    void conditionalReplacementStopsWhenTheExpectedCredentialIsNoLongerActive() {
+        Map<String, Object> replacement = Map.of("cookies", List.of());
+        when(jdbcTemplate.queryForList(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                eq(Long.class)
+        )).thenReturn(List.of(2L), List.of(99L));
+
+        var result = repository.saveActiveIfCurrent(
+                DouyinAuthConstants.WEB_AUTH_TYPE,
+                41L,
+                replacement,
+                null
+        );
+
+        assertThat(result).isEmpty();
+        verify(cipher, never()).encrypt(any());
+        verify(jdbcTemplate, never()).queryForObject(
+                contains("INSERT INTO platform_credential"),
+                any(MapSqlParameterSource.class),
+                ArgumentMatchers.<RowMapper<DouyinStoredCredential>>any()
+        );
+    }
+
+    @Test
+    void refreshOperationUsesADedicatedDatabaseLockKey() {
+        when(jdbcTemplate.queryForList(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                eq(Long.class)
+        )).thenReturn(List.of(2L));
+
+        repository.acquireOperationLock(DouyinAuthConstants.OAUTH_AUTH_TYPE, "refresh");
+
+        verify(jdbcTemplate).query(
+                contains("pg_advisory_xact_lock"),
+                eq(Map.of("lockKey", "2:" + DouyinAuthConstants.OAUTH_AUTH_TYPE + ":refresh")),
+                ArgumentMatchers.<ResultSetExtractor<Object>>any()
         );
     }
 }

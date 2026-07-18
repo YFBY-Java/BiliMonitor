@@ -27,6 +27,14 @@ const QR_TAB_SELECTORS = Object.freeze([
   'text=扫码登录'
 ])
 
+const AUTHENTICATED_MARKER_SELECTORS = Object.freeze([
+  '[data-douyin-authenticated="true"]',
+  '[data-e2e="user-name"]',
+  '[data-e2e="user-nickname"]',
+  '[data-e2e="user-avatar"]',
+  '[data-e2e="logout"]'
+])
+
 const STATE_MESSAGES = Object.freeze({
   STARTING: 'The Douyin login page is starting',
   WAITING: 'Scan the QR code with Douyin',
@@ -273,6 +281,16 @@ function validationPageLooksLoggedOut(url, text) {
     /登录后/u.test(text)
 }
 
+async function firstVisibleSelector(page, selectors) {
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first()
+    if (await locator.isVisible({ timeout: 250 }).catch(() => false)) {
+      return selector
+    }
+  }
+  return undefined
+}
+
 export class PlaywrightDouyinLoginSession {
   constructor({ context, page, config, workerSessionId, now = () => new Date() }) {
     this.context = context
@@ -413,22 +431,35 @@ export class PlaywrightDouyinDriver {
         waitUntil: 'domcontentloaded',
         timeout: this.config.navigationTimeoutMs
       })
-      const [title, text, cookies] = await Promise.all([
+      await page.waitForLoadState?.('networkidle', {
+        timeout: Math.min(this.config.navigationTimeoutMs, 5_000)
+      }).catch(() => undefined)
+      const [title, text, cookies, identityMarker, loginMarker, qrLocator] = await Promise.all([
         page.title().catch(() => ''),
         bodyText(page),
-        context.cookies().catch(() => [])
+        context.cookies().catch(() => []),
+        firstVisibleSelector(page, AUTHENTICATED_MARKER_SELECTORS),
+        firstVisibleSelector(page, LOGIN_TRIGGER_SELECTORS),
+        findVisibleQrLocator(page).catch(() => undefined)
       ])
+      const authenticatedCookiePresent = hasAuthenticatedCookies(cookies)
       const pageState = classifyPageState({
         title,
         text,
-        authenticated: hasAuthenticatedCookies(cookies)
+        authenticated: authenticatedCookiePresent
       })
-      const valid = pageState === 'SUCCESS' && !validationPageLooksLoggedOut(page.url(), text)
+      const qrVisible = Boolean(qrLocator)
+      const loggedOut = validationPageLooksLoggedOut(page.url(), text) || Boolean(loginMarker) || qrVisible
+      const valid = pageState === 'SUCCESS' && Boolean(identityMarker) && !loggedOut
       const details = {
-        status: valid ? 'SUCCESS' : pageState,
+        status: valid ? 'SUCCESS' : loggedOut ? 'LOGGED_OUT' : 'IDENTITY_NOT_CONFIRMED',
         url: page.url(),
         title,
         cookieCount: cookies.length,
+        authenticatedCookiePresent,
+        identityMarker: identityMarker ?? null,
+        loginMarker: loginMarker ?? null,
+        qrVisible,
         validatedAt
       }
       return {

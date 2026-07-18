@@ -205,7 +205,7 @@ $rng.GetBytes($bytes)
 [Convert]::ToBase64String($bytes)
 ```
 
-把结果写入 `.env.local` 的 `SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY`，然后执行：
+把结果写入 `.env.local` 的 `SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY`，然后执行。启用抖音登录态时该 key 必填且必须保持不变；缺失或格式错误会直接拒绝启动，避免重启后已保存状态无法读取：
 
 ```powershell
 .\scripts\dev-start-douyin.cmd

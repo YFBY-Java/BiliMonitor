@@ -13,8 +13,6 @@ import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.douyin.auth", name = "enabled", havingValue = "true")
 public class DouyinCredentialCipher {
 
-    private static final Logger log = LoggerFactory.getLogger(DouyinCredentialCipher.class);
     private static final TypeReference<Map<String, Object>> OBJECT_MAP = new TypeReference<>() {};
 
     private final DouyinAuthProperties properties;
@@ -57,10 +54,10 @@ public class DouyinCredentialCipher {
             keyBytes = decoded;
             return;
         }
-        keyBytes = new byte[32];
-        secureRandom.nextBytes(keyBytes);
-        log.warn("SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY is not configured. "
-                + "Using an in-memory key; persisted Douyin credentials cannot be decrypted after restart.");
+        throw new BusinessException(
+                ErrorCode.BAD_REQUEST,
+                "SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY must be configured when Douyin auth is enabled."
+        );
     }
 
     public Map<String, Object> encrypt(Map<String, Object> plainPayload) {
@@ -73,10 +70,7 @@ public class DouyinCredentialCipher {
             byte[] ciphertext = cipher.doFinal(objectMapper.writeValueAsBytes(plainPayload));
             Map<String, Object> envelope = new LinkedHashMap<>();
             envelope.put("alg", "AES-256-GCM");
-            envelope.put("kid", properties.credentialEncryptionKey() == null
-                    || properties.credentialEncryptionKey().isBlank()
-                    ? "runtime:ephemeral"
-                    : "env:SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY");
+            envelope.put("kid", "env:SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY");
             envelope.put("iv", Base64.getEncoder().encodeToString(iv));
             envelope.put("ciphertext", Base64.getEncoder().encodeToString(ciphertext));
             return envelope;

@@ -78,13 +78,17 @@ public class DouyinCredentialService {
         return stored;
     }
 
-    public DouyinStoredCredential replaceActiveWeb(Map<String, Object> bundle) {
+    public DouyinStoredCredential replaceActiveWeb(Long expectedCredentialId, Map<String, Object> bundle) {
         requireWebBundle(bundle);
-        return credentials.saveActive(
+        return credentials.saveActiveIfCurrent(
                 DouyinAuthConstants.WEB_AUTH_TYPE,
+                expectedCredentialId,
                 bundle,
                 deriveWebExpiration(bundle)
-        );
+        ).orElseThrow(() -> new BusinessException(
+                ErrorCode.BUSINESS_ERROR,
+                "Active Douyin Web credential changed while validation was running; retry with the current state."
+        ));
     }
 
     public DouyinStoredCredential requireActiveWeb() {

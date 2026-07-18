@@ -74,6 +74,7 @@ public class DouyinAuthSessionRepository {
                     error_message = NULL,
                     updated_at = now()
                 WHERE login_id = :loginId
+                  AND status NOT IN ('SUCCESS', 'FAILED', 'EXPIRED')
                 """, new MapSqlParameterSource()
                 .addValue("loginId", loginId)
                 .addValue("status", status)
@@ -110,11 +111,28 @@ public class DouyinAuthSessionRepository {
                     error_message = :errorMessage,
                     updated_at = now()
                 WHERE login_id = :loginId
+                  AND status <> 'SUCCESS'
                 """, new MapSqlParameterSource()
                 .addValue("loginId", loginId)
                 .addValue("errorCode", errorCode)
                 .addValue("errorMessage", errorMessage)
                 .addValue("rawResult", toJson(rawResult)));
+    }
+
+    public boolean tryClaimForValidation(UUID loginId, Map<String, Object> rawResult) {
+        int updated = jdbcTemplate.update("""
+                UPDATE douyin_auth_session
+                SET status = 'VALIDATING',
+                    raw_result_json = CAST(:rawResult AS jsonb),
+                    error_code = NULL,
+                    error_message = NULL,
+                    updated_at = now()
+                WHERE login_id = :loginId
+                  AND status = 'WAITING'
+                """, new MapSqlParameterSource()
+                .addValue("loginId", loginId)
+                .addValue("rawResult", toJson(rawResult)));
+        return updated == 1;
     }
 
     public void attachWorkerSession(UUID loginId, String workerSessionId, Map<String, Object> rawResult) {

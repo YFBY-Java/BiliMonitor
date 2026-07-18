@@ -144,6 +144,27 @@ class DouyinWebAuthServiceTests {
     }
 
     @Test
+    void lateConsumeFailureReturnsTheSuccessPersistedByAnotherPoll() {
+        UUID loginId = UUID.randomUUID();
+        DouyinAuthSession waiting = session(loginId, "WAITING", NOW.plusSeconds(180));
+        DouyinAuthSession completed = session(loginId, "SUCCESS", NOW.plusSeconds(180));
+        DouyinStoredCredential stored = stored(RAW_BUNDLE, 42L);
+        when(sessions.findByLoginId(loginId))
+                .thenReturn(Optional.of(waiting), Optional.of(completed));
+        when(worker.status("worker-1"))
+                .thenReturn(new WorkerStatus("SUCCESS", "validated", Map.of("raw", "status")));
+        when(worker.consume("worker-1"))
+                .thenThrow(new BusinessException(ErrorCode.NOT_FOUND, "worker session already consumed"));
+        when(credentials.requireActiveWeb()).thenReturn(stored);
+
+        var result = service.poll(loginId);
+
+        assertThat(result.status()).isEqualTo("SUCCESS");
+        assertThat(result.credential().credentialId()).isEqualTo(42L);
+        verify(sessions, never()).completeFailure(eq(loginId), any(), any(), any());
+    }
+
+    @Test
     void expiredQrSessionNeverCallsWorkerStatusOrTouchesCredentials() {
         UUID loginId = UUID.randomUUID();
         when(sessions.findByLoginId(loginId)).thenReturn(Optional.of(session(loginId, "WAITING", NOW.minusSeconds(1))));
@@ -168,14 +189,14 @@ class DouyinWebAuthServiceTests {
         when(worker.validate(RAW_BUNDLE)).thenReturn(new WorkerValidation(
                 true, "reusable", refreshedBundle, Map.of("details", Map.of("raw", "keep"))
         ));
-        when(credentials.replaceActiveWeb(refreshedBundle)).thenReturn(stored(refreshedBundle, 42L));
+        when(credentials.replaceActiveWeb(41L, refreshedBundle)).thenReturn(stored(refreshedBundle, 42L));
 
         var result = service.validateCurrent();
 
         assertThat(result.valid()).isTrue();
         assertThat(result.credential().credentialId()).isEqualTo(42L);
         assertThat(result.credential().payload()).isEqualTo(refreshedBundle);
-        verify(credentials).replaceActiveWeb(refreshedBundle);
+        verify(credentials).replaceActiveWeb(41L, refreshedBundle);
         verify(credentials, never()).markWebInvalid(any());
     }
 
@@ -192,7 +213,7 @@ class DouyinWebAuthServiceTests {
         assertThat(result.valid()).isFalse();
         assertThat(result.rawResult()).containsKey("details");
         verify(credentials).markWebInvalid(41L);
-        verify(credentials, never()).replaceActiveWeb(any());
+        verify(credentials, never()).replaceActiveWeb(any(), any());
     }
 
     private DouyinAuthProperties properties() {

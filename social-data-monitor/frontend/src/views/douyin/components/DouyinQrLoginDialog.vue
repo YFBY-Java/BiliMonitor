@@ -6,7 +6,7 @@
     class="douyin-qr-dialog"
     destroy-on-close
     @update:model-value="emit('update:modelValue', $event)"
-    @closed="resetSession"
+    @closed="handleClosed"
   >
     <div class="qr-flow">
       <ol class="signal-track" aria-label="扫码登录进度">
@@ -82,6 +82,7 @@ import {
   type DouyinQrStatusView
 } from '@/api/douyinAuth'
 import { useQrPolling } from '../useQrPolling'
+import { createRequestGeneration } from '../requestGeneration'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
@@ -96,6 +97,8 @@ const loginId = ref('')
 const qrObjectUrl = ref('')
 const pollError = ref('')
 const status = ref<DouyinQrStatusView>()
+const sessionRequests = createRequestGeneration()
+const imageRequests = createRequestGeneration()
 
 const polling = useQrPolling({
   poll: () => fetchDouyinWebQrStatus(loginId.value),
@@ -164,20 +167,25 @@ watch(
   () => props.modelValue,
   visible => {
     if (visible && !loginId.value) void startLogin()
-    if (!visible) polling.stop()
+    if (!visible) resetSession()
   }
 )
 
 onBeforeUnmount(resetSession)
 
 async function startLogin() {
+  const requestGeneration = sessionRequests.next()
+  imageRequests.invalidate()
   polling.stop()
   releaseQrObjectUrl()
+  loginId.value = ''
+  imageLoading.value = false
   starting.value = true
   pollError.value = ''
   status.value = undefined
   try {
     const started = await startDouyinWebQr()
+    if (!props.modelValue || !sessionRequests.isCurrent(requestGeneration)) return
     loginId.value = started.loginId
     polling.setIntervalMs(Math.max(750, started.pollIntervalMs || 1500))
     status.value = {
@@ -188,8 +196,9 @@ async function startLogin() {
       rawResult: started.rawResult
     }
     polling.start(250)
-    void loadQrImage()
+    void loadQrImage(false, requestGeneration)
   } catch (error) {
+    if (!props.modelValue || !sessionRequests.isCurrent(requestGeneration)) return
     pollError.value = douyinErrorMessage(error, '无法创建抖音扫码会话。')
     status.value = {
       loginId: '',
@@ -199,23 +208,33 @@ async function startLogin() {
       rawResult: {}
     }
   } finally {
-    starting.value = false
+    if (sessionRequests.isCurrent(requestGeneration)) starting.value = false
   }
 }
 
-async function loadQrImage(force = false) {
+async function loadQrImage(force = false, expectedSession = sessionRequests.current()) {
+  if (!sessionRequests.isCurrent(expectedSession)) return
   if (!loginId.value || imageLoading.value || (!force && qrObjectUrl.value)) return
+  const requestedLoginId = loginId.value
+  const imageGeneration = imageRequests.next()
   imageLoading.value = true
   try {
-    const blob = await fetchDouyinWebQrImage(loginId.value)
+    const blob = await fetchDouyinWebQrImage(requestedLoginId)
+    if (!props.modelValue ||
+        !sessionRequests.isCurrent(expectedSession) ||
+        !imageRequests.isCurrent(imageGeneration) ||
+        loginId.value !== requestedLoginId) return
     releaseQrObjectUrl()
     qrObjectUrl.value = URL.createObjectURL(blob)
   } catch (error) {
+    if (!props.modelValue ||
+        !sessionRequests.isCurrent(expectedSession) ||
+        !imageRequests.isCurrent(imageGeneration)) return
     if (status.value?.status !== 'USER_ACTION_REQUIRED') {
       pollError.value = douyinErrorMessage(error, '二维码暂未生成，系统会继续检测。')
     }
   } finally {
-    imageLoading.value = false
+    if (imageRequests.isCurrent(imageGeneration)) imageLoading.value = false
   }
 }
 
@@ -234,11 +253,19 @@ function stepClass(index: number) {
 }
 
 function resetSession() {
+  sessionRequests.invalidate()
+  imageRequests.invalidate()
   polling.stop()
   releaseQrObjectUrl()
   loginId.value = ''
   status.value = undefined
   pollError.value = ''
+  starting.value = false
+  imageLoading.value = false
+}
+
+function handleClosed() {
+  if (!props.modelValue) resetSession()
 }
 
 function releaseQrObjectUrl() {

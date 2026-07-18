@@ -84,7 +84,12 @@ test('validates a saved bundle in a second context and always closes that contex
     goto: async () => undefined,
     url: () => 'https://www.douyin.com/user/self',
     title: async () => '个人主页',
-    locator: () => ({ innerText: async () => '个人主页 退出登录' })
+    frames: () => [],
+    locator: selector => ({
+      first: () => ({ isVisible: async () => selector === '[data-e2e="user-name"]' }),
+      innerText: async () => '个人主页 退出登录',
+      count: async () => 0
+    })
   }
   const validationContext = {
     addInitScript: async (_script, payload) => { restoredStorage = payload },
@@ -124,4 +129,43 @@ test('validates a saved bundle in a second context and always closes that contex
   }])
   assert.equal(result.bundle.lastValidatedAt, '2026-07-18T12:05:00.000Z')
   assert.equal(closed, true)
+})
+
+test('rejects a stale auth-named cookie when the server renders a logged-out page', async () => {
+  const validationPage = {
+    goto: async () => undefined,
+    url: () => 'https://www.douyin.com/user/self',
+    title: async () => 'Douyin login',
+    frames: () => [],
+    locator: selector => ({
+      first: () => ({ isVisible: async () => false }),
+      innerText: async () => selector === 'body' ? 'Scan QR code to log in' : '',
+      count: async () => 0
+    })
+  }
+  const validationContext = {
+    newPage: async () => validationPage,
+    cookies: async () => [{ name: 'sessionid_ss', value: 'stale-session', domain: '.douyin.com' }],
+    close: async () => undefined
+  }
+  const browserType = {
+    launch: async () => ({ newContext: async () => validationContext })
+  }
+  const driver = new PlaywrightDouyinDriver({
+    browserType,
+    config: {
+      headless: true,
+      validationUrl: 'https://www.douyin.com/user/self',
+      navigationTimeoutMs: 30_000,
+      locale: 'zh-CN',
+      timezoneId: 'Asia/Shanghai',
+      viewport: { width: 1440, height: 900 }
+    }
+  })
+
+  const result = await driver.validateBundle({ storageState: { cookies: [], origins: [] } })
+
+  assert.equal(result.valid, false)
+  assert.equal(result.details.authenticatedCookiePresent, true)
+  assert.equal(result.details.identityMarker, null)
 })
