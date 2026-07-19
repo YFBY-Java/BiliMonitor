@@ -13,8 +13,6 @@ import AiAnalysisView from '@/views/ai/AiAnalysisView.vue'
 import IdentityView from '@/views/identity/IdentityView.vue'
 import SettingsView from '@/views/settings/SettingsView.vue'
 
-const douyinEnabled = import.meta.env.VITE_DOUYIN_ENABLED === 'true'
-
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -23,12 +21,12 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'dashboard', name: 'dashboard', component: DashboardView, meta: { title: 'Dashboard' } },
       { path: 'bilibili', name: 'bilibili', component: BilibiliView, meta: { title: 'Bilibili' } },
-      ...(douyinEnabled ? [{
+      {
         path: 'douyin',
         name: 'douyin',
         component: () => import('@/views/douyin/DouyinView.vue'),
         meta: { title: '抖音登录态' }
-      }] : []),
+      },
       { path: 'bilibili/live', name: 'bilibili-live', component: BilibiliLiveView, meta: { title: 'Bilibili 直播' } },
       { path: 'subjects', name: 'subjects', component: SubjectListView, meta: { title: '用户监控' } },
       { path: 'subjects/:subjectId', name: 'subject-workbench', component: SubjectWorkbenchView, meta: { title: '用户监控' } },

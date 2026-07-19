@@ -14,7 +14,7 @@
       <el-menu router :default-active="activeMenu" class="menu">
         <el-menu-item index="/dashboard"><el-icon><DataLine /></el-icon><span>Dashboard</span></el-menu-item>
         <el-menu-item index="/bilibili"><el-icon><VideoPlay /></el-icon><span>Bilibili</span></el-menu-item>
-        <el-menu-item v-if="douyinEnabled" index="/douyin"><el-icon><Iphone /></el-icon><span>抖音登录态</span></el-menu-item>
+        <el-menu-item index="/douyin"><el-icon><Iphone /></el-icon><span>抖音登录态</span></el-menu-item>
         <el-menu-item index="/bilibili/live"><el-icon><Monitor /></el-icon><span>直播监控</span></el-menu-item>
         <el-menu-item index="/subjects"><el-icon><User /></el-icon><span>用户监控</span></el-menu-item>
         <el-menu-item index="/platform"><el-icon><Connection /></el-icon><span>平台管理</span></el-menu-item>
@@ -59,7 +59,6 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const douyinEnabled = import.meta.env.VITE_DOUYIN_ENABLED === 'true'
 const activeMenu = computed(() => {
   if (route.path.startsWith('/subjects')) return '/subjects'
   return route.path
