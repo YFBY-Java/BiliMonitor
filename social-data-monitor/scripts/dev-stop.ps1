@@ -1,5 +1,7 @@
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
+& (Join-Path $PSScriptRoot "load-env.ps1") -Path (Join-Path $root ".env.local")
+$workerPort = if ([string]::IsNullOrWhiteSpace($env:DOUYIN_WORKER_PORT)) { 8787 } else { [int]$env:DOUYIN_WORKER_PORT }
 
 function Get-ListenerProcess {
   param([int]$Port)
@@ -34,6 +36,9 @@ function Stop-ProjectListener {
   if ($Name -eq "Backend" -and $commandLine -like "*com.socialmonitor.SocialDataMonitorApplication*") {
     $belongsToProject = $true
   }
+  if ($Name -eq "Douyin Worker") {
+    $belongsToProject = $commandLine -like "*$root*" -and $commandLine -like "*douyin-worker*server.js*"
+  }
 
   if (-not $belongsToProject) {
     Write-Warning "$Name port $Port is used by PID $($process.ProcessId), but it does not look like this project. Skipped."
@@ -44,6 +49,7 @@ function Stop-ProjectListener {
   Write-Host "Stopped $Name on $Port (PID $($process.ProcessId))."
 }
 
+Stop-ProjectListener -Name "Douyin Worker" -Port $workerPort
 Stop-ProjectListener -Name "Frontend" -Port 5173
 Stop-ProjectListener -Name "Backend" -Port 8080
 

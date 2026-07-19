@@ -1,11 +1,20 @@
 param(
   [switch]$NoWait,
-  [int]$TimeoutSeconds = 90
+  [int]$TimeoutSeconds = 120
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $logDir = Join-Path $root ".dev-data"
+$windowsPowerShell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+
+& (Join-Path $PSScriptRoot "load-env.ps1") -Path (Join-Path $root ".env.local")
+. (Join-Path $PSScriptRoot "dev-system-config.ps1")
+$devConfig = Initialize-IntegratedDevEnvironment -Root $root
+if ($devConfig.KeyGenerated) {
+  Write-Host "Generated and saved SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY in $($devConfig.EnvFilePath)."
+}
+
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
 function Get-Listener {
@@ -18,11 +27,13 @@ function Get-Listener {
   }
 
   $process = Get-Process -Id $connection.OwningProcess -ErrorAction SilentlyContinue
+  $processDetails = Get-CimInstance Win32_Process -Filter "ProcessId = $($connection.OwningProcess)" -ErrorAction SilentlyContinue
   [PSCustomObject]@{
     Port = $Port
     ProcessId = $connection.OwningProcess
     ProcessName = $process.ProcessName
     Path = $process.Path
+    CommandLine = $processDetails.CommandLine
   }
 }
 
@@ -47,7 +58,8 @@ function Wait-ForPort {
 function Wait-ForHttp {
   param(
     [string]$Url,
-    [int]$TimeoutSeconds
+    [int]$TimeoutSeconds,
+    [AllowNull()][string]$BearerToken
   )
 
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -58,6 +70,9 @@ function Wait-ForHttp {
       $request.Method = "GET"
       $request.Timeout = 3000
       $request.ReadWriteTimeout = 3000
+      if (-not [string]::IsNullOrWhiteSpace($BearerToken)) {
+        $request.Headers["Authorization"] = "Bearer $BearerToken"
+      }
       $response = $request.GetResponse()
       try {
         $statusCode = [int]$response.StatusCode
@@ -127,8 +142,8 @@ function Start-DevProcess {
   Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
 
   $process = Start-Process `
-    -FilePath "powershell.exe" `
-    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptPath) `
+    -FilePath $windowsPowerShell `
+    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ('"{0}"' -f $scriptPath)) `
     -WorkingDirectory $root `
     -WindowStyle Hidden `
     -RedirectStandardOutput $stdoutPath `
@@ -138,24 +153,65 @@ function Start-DevProcess {
   Write-Host "Starting $Name with launcher PID $($process.Id). Logs: $stdoutPath"
 }
 
+function Start-DouyinWorker {
+  param([Parameter(Mandatory = $true)][int]$Port)
+
+  $listener = Get-Listener -Port $Port
+  if ($listener) {
+    $commandLine = if ($null -eq $listener.CommandLine) { "" } else { $listener.CommandLine }
+    if ($commandLine -notlike "*$root*" -or $commandLine -notlike "*douyin-worker*server.js*") {
+      throw "Port $Port is already used by PID $($listener.ProcessId), outside this project."
+    }
+    Write-Host "Douyin Worker already listening on $Port (PID $($listener.ProcessId))."
+    return
+  }
+
+  $stdoutPath = Join-Path $logDir "douyin-worker-dev.log"
+  $stderrPath = Join-Path $logDir "douyin-worker-dev.err.log"
+  Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
+
+  $scriptPath = Join-Path $PSScriptRoot "dev-douyin-worker.ps1"
+  $launcher = Start-Process `
+    -FilePath $windowsPowerShell `
+    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ('"{0}"' -f $scriptPath)) `
+    -WorkingDirectory $root `
+    -WindowStyle Hidden `
+    -RedirectStandardOutput $stdoutPath `
+    -RedirectStandardError $stderrPath `
+    -PassThru
+
+  Write-Host "Starting Douyin Worker with launcher PID $($launcher.Id). Logs: $stdoutPath"
+}
+
 Start-PortablePostgres
 
-# Backend and frontend do not need to wait on each other; starting them together is noticeably faster.
+# Worker, backend, and frontend launch without waiting on one another.
+Start-DouyinWorker -Port $devConfig.WorkerPort
 Start-DevProcess -Name "Backend" -Port 8080 -ScriptName "dev-backend.ps1" -StdoutName "backend-dev.log" -StderrName "backend-dev.err.log"
 Start-DevProcess -Name "Frontend" -Port 5173 -ScriptName "dev-frontend.ps1" -StdoutName "frontend-dev.log" -StderrName "frontend-dev.err.log"
 
 if ($NoWait) {
   Write-Host "Started launchers. Skipping readiness checks because -NoWait was supplied."
   Write-Host "Bilibili page: http://127.0.0.1:5173/bilibili"
+  Write-Host "Douyin page: http://127.0.0.1:5173/douyin"
+  Write-Host "Douyin Worker logs: $(Join-Path $logDir 'douyin-worker-dev.log')"
   exit 0
 }
 
-Write-Host "Waiting for backend and frontend..."
+Write-Host "Waiting for Douyin Worker, backend, and frontend..."
+Wait-ForHttp `
+  -Url "http://127.0.0.1:$($devConfig.WorkerPort)/internal/v1/health" `
+  -TimeoutSeconds $TimeoutSeconds `
+  -BearerToken $env:SOCIAL_MONITOR_DOUYIN_WORKER_TOKEN | Out-Null
 Wait-ForHttp -Url "http://127.0.0.1:8080/actuator/health" -TimeoutSeconds $TimeoutSeconds | Out-Null
 Wait-ForHttp -Url "http://127.0.0.1:5173/bilibili" -TimeoutSeconds $TimeoutSeconds | Out-Null
+Wait-ForHttp -Url "http://127.0.0.1:5173/douyin" -TimeoutSeconds $TimeoutSeconds | Out-Null
 
 Write-Host ""
 Write-Host "Dev environment is ready."
 Write-Host "Bilibili page: http://127.0.0.1:5173/bilibili"
+Write-Host "Douyin page: http://127.0.0.1:5173/douyin"
 Write-Host "Backend health: http://127.0.0.1:8080/actuator/health"
+Write-Host "Douyin Worker health: http://127.0.0.1:$($devConfig.WorkerPort)/internal/v1/health"
 Write-Host "Logs: $logDir"

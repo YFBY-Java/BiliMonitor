@@ -15,7 +15,7 @@
 - [数据库迁移](#数据库迁移)
 - [验证命令](#验证命令)
 
-这是基于本地方案文档落地的 Java Spring Boot + Vue 3 模块化单体项目。当前业务监控闭环聚焦 Bilibili；抖音首期只提供独立登录态基础设施，用本人抖音扫码后保存完整 Web 浏览器会话，并预留官方 OAuth 登录态，不采集抖音业务数据。
+这是基于本地方案文档落地的 Java Spring Boot + Vue 3 模块化单体项目。当前业务监控闭环聚焦 Bilibili；抖音作为同一系统内的登录态模块，用本人抖音扫码后保存完整 Web 浏览器会话，并预留官方 OAuth 登录态，不采集抖音业务数据。
 
 对应方案文档在：
 
@@ -30,7 +30,7 @@ http://127.0.0.1:5173/bilibili
 http://127.0.0.1:5173/bilibili/live
 http://127.0.0.1:5173/subjects
 http://127.0.0.1:5173/subjects/{subjectId}
-http://127.0.0.1:5173/douyin  # 仅抖音独立启动入口开启
+http://127.0.0.1:5173/douyin
 ```
 
 - `/bilibili`：B站用户粉丝数趋势监控。
@@ -88,7 +88,7 @@ social-data-monitor
 暂未引入：
 
 - Redis、Kafka、Elasticsearch、ClickHouse、Kubernetes。
-- 通用 Docker 部署；抖音登录态提供独立、可选的 Compose 入口。
+- 通用 Docker 部署；当前 Compose 入口覆盖包含抖音登录态的完整系统。
 - Resilience4j。当前只保留轻量 `RetryPolicy` 和 `RateLimitService` 占位；等真实限流、重试、熔断策略变复杂后再加入。
 
 ## 环境要求
@@ -97,7 +97,7 @@ social-data-monitor
 - Node.js 20+。
 - npm 10+。
 - PostgreSQL 14+。
-- 抖音扫码需要 Chromium；独立启动脚本会安装到项目内 `.dev-tools/playwright`。
+- 抖音扫码需要 Chromium；统一启动脚本会安装到项目内 `.dev-tools/playwright`。
 
 当前工程包含一个轻量 Maven Wrapper。若本机没有 Maven，执行 `backend\mvnw.cmd` 会自动下载 Maven 到 `backend\.mvn\wrapper`。
 
@@ -118,7 +118,7 @@ cd social-data-monitor
 Copy-Item .env.example .env.local
 ```
 
-然后在 `.env.local` 中填写数据库连接、开发账号密码、Bilibili 凭据加密 key、抖音凭据加密 key、前端 API 地址等本地值。`SOCIAL_MONITOR_CREDENTIAL_ENCRYPTION_KEY` 和 `SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY` 都需要是 base64 编码的 32 字节随机 key；两个 key 相互独立。
+然后在 `.env.local` 中填写数据库连接、开发账号密码、Bilibili 凭据加密 key、前端 API 地址等本地值。`SOCIAL_MONITOR_CREDENTIAL_ENCRYPTION_KEY` 需要是 base64 编码的 32 字节随机 key。抖音凭据使用独立的 `SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY`；统一启动脚本会在缺失或仍为模板值时自动生成并持久化，已有合法值保持不变。
 
 脚本启动时会自动加载 `.env.local`。如果手动启动单个服务，也建议先在同一个 PowerShell 会话里执行：
 
@@ -136,13 +136,14 @@ cd social-data-monitor
 .\scripts\dev-start.cmd
 ```
 
-脚本会自动检查并启动：
+`dev-start.cmd` 会统一启动 PostgreSQL、Douyin Worker、Spring Boot 和 Vite。脚本会自动检查并启动：
 
 - 便携 PostgreSQL：`5432`
+- Douyin Worker：`8787`
 - Spring Boot 后端：`8080`
 - Vite 前端：`5173`
 
-后端和前端会并行启动，并自动加载 `.env.local`。脚本会等待 `http://127.0.0.1:8080/actuator/health` 与 `http://127.0.0.1:5173/bilibili` 可用。
+Worker、后端和前端会并行启动，并自动加载 `.env.local`。脚本会等待 Worker、后端、Bilibili 页面与抖音页面可用。
 
 启动后常用页面：
 
@@ -150,6 +151,7 @@ cd social-data-monitor
 http://127.0.0.1:5173/bilibili
 http://127.0.0.1:5173/bilibili/live
 http://127.0.0.1:5173/subjects
+http://127.0.0.1:5173/douyin
 ```
 
 如果只想发起启动、不等待健康检查：
@@ -168,6 +170,7 @@ http://127.0.0.1:5173/subjects
 
 ```text
 .dev-data\postgres.log
+.dev-data\douyin-worker-dev.log
 .dev-data\backend-dev.log
 .dev-data\frontend-dev.log
 ```
@@ -187,58 +190,42 @@ Web 扫码成功后原样保存：
 
 OAuth 启用后会单独保存 token 响应、回调参数和用户信息原文。Web 与 OAuth 是两条独立凭据，不覆盖 Bilibili 登录态。
 
-### Windows 一键启动
+### Windows 统一启动
 
-先复制并填写项目内配置：
-
-```powershell
-cd social-data-monitor
-Copy-Item .env.example .env.local
-```
-
-生成抖音凭据加密 key：
+直接使用系统原有的一键启动命令：
 
 ```powershell
-$bytes = New-Object byte[] 32
-$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-$rng.GetBytes($bytes)
-[Convert]::ToBase64String($bytes)
+.\scripts\dev-start.cmd
 ```
 
-把结果写入 `.env.local` 的 `SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY`，然后执行。启用抖音登录态时该 key 必填且必须保持不变；缺失或格式错误会直接拒绝启动，避免重启后已保存状态无法读取：
-
-```powershell
-.\scripts\dev-start-douyin.cmd
-```
-
-这个新增入口会执行以下操作：
+统一入口会执行以下操作：
 
 1. 加载项目内 `.env.local`。
-2. 仅在当前启动链路启用 `dev,douyin`、`SOCIAL_MONITOR_DOUYIN_AUTH_ENABLED=true` 和 `VITE_DOUYIN_ENABLED=true`。
-3. 首次运行时安装 `douyin-worker` 依赖和项目内 Chromium。
-4. 启动 `8787` Worker，再复用原 PostgreSQL、后端和前端启动流程。
-5. 等待 Worker、后端和前端可用后输出 `http://127.0.0.1:5173/douyin`。
+2. 抖音凭据 key 缺失或仍为模板值时，自动生成 base64 32 字节 key 并写回 `.env.local`；合法已有值不会改变，非法自定义值会拒绝启动。
+3. 启用 `dev,douyin` 和 `SOCIAL_MONITOR_DOUYIN_AUTH_ENABLED=true`。
+4. 首次运行时安装 `douyin-worker` 依赖和项目内 Chromium。
+5. 启动 PostgreSQL、`8787` Worker、Spring Boot 后端和 Vite 前端。
+6. 等待 Worker、后端及两个平台页面可用。
 
 进入页面后点击“开始扫码”，用自己的抖音 App 扫码并确认。若抖音要求滑块或额外确认，本地 Worker 会保留可见浏览器窗口并把页面状态显示为 `USER_ACTION_REQUIRED`；在浏览器中手工完成后继续轮询即可。
 
 停止整套本地环境：
 
 ```powershell
-.\scripts\dev-stop-douyin.cmd
+.\scripts\dev-stop.cmd
 ```
 
-原 `dev-start.cmd`、`dev-stop.cmd` 的默认行为不变：不会启用抖音、不启动 Worker，也不显示抖音菜单。
+`dev-start-douyin.cmd` 和 `dev-stop-douyin.cmd` 仅作为历史兼容别名，内部转发到相同的统一启停流程。
 
 ### 关键配置
 
 | 配置 | 用途 | Web 扫码建议值 |
 | --- | --- | --- |
-| `SOCIAL_MONITOR_DOUYIN_AUTH_ENABLED` | 后端抖音组件开关 | 新启动脚本自动设为 `true` |
-| `SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY` | 登录态持久化加密 key | base64 编码的 32 字节 |
+| `SOCIAL_MONITOR_DOUYIN_AUTH_ENABLED` | 后端抖音组件开关 | 统一启动脚本自动设为 `true` |
+| `SOCIAL_MONITOR_DOUYIN_CREDENTIAL_ENCRYPTION_KEY` | 登录态持久化加密 key | 缺失时自动生成 base64 32 字节 key |
 | `SOCIAL_MONITOR_DOUYIN_WORKER_BASE_URL` | 后端访问 Worker | `http://127.0.0.1:8787` |
 | `SOCIAL_MONITOR_DOUYIN_WORKER_TOKEN` | 后端与 Worker 的共享 token | 两边使用同一值或同时留空 |
 | `DOUYIN_WORKER_HEADLESS` | 是否隐藏本地 Chromium | 本地设为 `false` |
-| `VITE_DOUYIN_ENABLED` | 编译/开发时注册菜单与路由 | 新启动脚本自动设为 `true` |
 | `SOCIAL_MONITOR_DOUYIN_OAUTH_MODE` | 官方 OAuth 模式 | 只用 Web 扫码时保持 `disabled` |
 
 需要官方 OAuth 时再把模式改为 `live`，并填写 client key、client secret、redirect URI 和 scope；Web 扫码不依赖这些配置。
