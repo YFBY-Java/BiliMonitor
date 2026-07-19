@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -43,6 +44,7 @@ public class DouyinOAuthService {
     private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
 
+    @Autowired
     public DouyinOAuthService(
             DouyinAuthProperties properties,
             DouyinAuthSessionRepository sessions,
