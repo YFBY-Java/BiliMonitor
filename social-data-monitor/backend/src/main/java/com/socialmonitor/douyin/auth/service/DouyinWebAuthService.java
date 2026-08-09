@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 public class DouyinWebAuthService {
 
     private static final String WEB_FLOW = "WEB_QR";
+    private static final String WORKER_SESSION_FAILED = "WORKER_SESSION_FAILED";
     private static final Set<String> TERMINAL_STATES = Set.of("SUCCESS", "EXPIRED", "FAILED");
 
     private final DouyinAuthProperties properties;
@@ -158,13 +159,33 @@ public class DouyinWebAuthService {
         }
 
         if (!"SUCCESS".equals(status.status())) {
-            sessions.updateStatus(loginId, normalizeStatus(status.status()), status.rawResult());
-            if ("EXPIRED".equals(status.status()) || "FAILED".equals(status.status())) {
+            String normalizedStatus = normalizeStatus(status.status());
+            if ("FAILED".equals(normalizedStatus)) {
+                String failureMessage = status.message() == null || status.message().isBlank()
+                        ? defaultMessage("FAILED")
+                        : status.message();
+                sessions.completeFailure(
+                        loginId,
+                        WORKER_SESSION_FAILED,
+                        failureMessage,
+                        status.rawResult()
+                );
+                safeDelete(session.workerSessionId());
+                return statusView(
+                        session,
+                        normalizedStatus,
+                        failureMessage,
+                        status.rawResult(),
+                        null
+                );
+            }
+            sessions.updateStatus(loginId, normalizedStatus, status.rawResult());
+            if ("EXPIRED".equals(status.status())) {
                 safeDelete(session.workerSessionId());
             }
             return statusView(
                     session,
-                    normalizeStatus(status.status()),
+                    normalizedStatus,
                     status.message(),
                     status.rawResult(),
                     null

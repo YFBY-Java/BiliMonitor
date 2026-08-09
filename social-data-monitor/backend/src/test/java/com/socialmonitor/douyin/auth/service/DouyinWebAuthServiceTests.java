@@ -160,6 +160,36 @@ class DouyinWebAuthServiceTests {
     }
 
     @Test
+    void workerFailurePersistsActionableDetailsForSubsequentPolls() {
+        UUID loginId = UUID.randomUUID();
+        String message = "Chromium failed to start: executable is missing";
+        Map<String, Object> rawResult = Map.of(
+                "status", "FAILED",
+                "message", message,
+                "errorName", "ExecutableDoesNotExist"
+        );
+        DouyinAuthSession waiting = session(loginId, "STARTING", NOW.plusSeconds(180));
+        DouyinAuthSession failed = failedSession(loginId, message, rawResult);
+        when(sessions.findByLoginId(loginId))
+                .thenReturn(Optional.of(waiting), Optional.of(failed));
+        when(worker.status("worker-1"))
+                .thenReturn(new WorkerStatus("FAILED", message, rawResult));
+
+        var first = service.poll(loginId);
+        var subsequent = service.poll(loginId);
+
+        assertThat(first.status()).isEqualTo("FAILED");
+        assertThat(first.message()).isEqualTo(message);
+        assertThat(subsequent.status()).isEqualTo("FAILED");
+        assertThat(subsequent.message()).isEqualTo(message);
+        verify(sessions).completeFailure(loginId, "WORKER_SESSION_FAILED", message, rawResult);
+        verify(sessions, never()).updateStatus(loginId, "FAILED", rawResult);
+        verify(worker).status("worker-1");
+        verify(worker).delete("worker-1");
+        verifyNoInteractions(credentials);
+    }
+
+    @Test
     void consumeFailureLeavesCurrentCredentialUntouchedAndStoresFailureResult() {
         UUID loginId = UUID.randomUUID();
         when(sessions.findByLoginId(loginId)).thenReturn(Optional.of(session(loginId, "WAITING", NOW.plusSeconds(180))));
@@ -260,6 +290,19 @@ class DouyinWebAuthServiceTests {
                 loginId, "WEB_QR", "live", "worker-1", null, status,
                 OffsetDateTime.ofInstant(expiresAt, ZoneOffset.UTC), null, null, null,
                 Map.of(), now, now
+        );
+    }
+
+    private DouyinAuthSession failedSession(
+            UUID loginId,
+            String errorMessage,
+            Map<String, Object> rawResult
+    ) {
+        OffsetDateTime now = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        return new DouyinAuthSession(
+                loginId, "WEB_QR", "live", "worker-1", null, "FAILED",
+                now.plusSeconds(180), now, "WORKER_SESSION_FAILED", errorMessage,
+                rawResult, now, now
         );
     }
 
