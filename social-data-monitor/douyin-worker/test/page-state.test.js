@@ -15,6 +15,13 @@ test('classifies captcha as user action instead of bypassing it', () => {
   }), 'USER_ACTION_REQUIRED')
 })
 
+test('keeps a visible QR waiting when SMS and password login tabs are present', () => {
+  assert.equal(classifyPageState({
+    text: '扫码登录 验证码登录 密码登录',
+    qrVisible: true
+  }), 'WAITING')
+})
+
 test('classifies the observable QR login states', () => {
   assert.equal(classifyPageState({ text: '二维码已过期，点击刷新' }), 'EXPIRED')
   assert.equal(classifyPageState({ text: '已扫码，请在手机上确认' }), 'SCANNED')

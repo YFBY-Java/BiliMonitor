@@ -1,5 +1,4 @@
 const CHALLENGE_PATTERNS = [
-  /验证码/u,
   /安全验证/u,
   /完成.{0,8}验证/u,
   /captcha/i,
