@@ -64,7 +64,11 @@
       >
         重新生成二维码
       </el-button>
-      <el-button v-else :loading="starting || imageLoading" @click="loadQrImage(true)">
+      <el-button
+        v-else-if="canRequestDouyinQrImage(status?.status)"
+        :loading="starting || imageLoading"
+        @click="loadQrImage(true)"
+      >
         刷新二维码图片
       </el-button>
     </template>
@@ -83,6 +87,7 @@ import {
 } from '@/api/douyinAuth'
 import { useQrPolling } from '../useQrPolling'
 import { createRequestGeneration } from '../requestGeneration'
+import { canRequestDouyinQrImage } from '../qrImagePolicy'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
@@ -106,7 +111,7 @@ const polling = useQrPolling({
   onResult: async next => {
     status.value = next
     pollError.value = ''
-    if (next.status === 'WAITING' && !qrObjectUrl.value) {
+    if (canRequestDouyinQrImage(next.status) && !qrObjectUrl.value) {
       await loadQrImage()
     }
     if (next.status === 'SUCCESS') {
@@ -190,13 +195,17 @@ async function startLogin() {
     polling.setIntervalMs(Math.max(750, started.pollIntervalMs || 1500))
     status.value = {
       loginId: started.loginId,
-      status: 'STARTING',
-      message: '浏览器会话已创建，正在定位抖音登录二维码。',
+      status: started.status,
+      message: started.status === 'WAITING'
+        ? '抖音登录二维码已准备好，请使用抖音 App 扫码。'
+        : '浏览器会话已创建，正在定位抖音登录二维码。',
       expiresInSeconds: started.expiresInSeconds,
       rawResult: started.rawResult
     }
     polling.start(250)
-    void loadQrImage(false, requestGeneration)
+    if (canRequestDouyinQrImage(started.status)) {
+      void loadQrImage(false, requestGeneration)
+    }
   } catch (error) {
     if (!props.modelValue || !sessionRequests.isCurrent(requestGeneration)) return
     pollError.value = douyinErrorMessage(error, '无法创建抖音扫码会话。')
@@ -214,6 +223,7 @@ async function startLogin() {
 
 async function loadQrImage(force = false, expectedSession = sessionRequests.current()) {
   if (!sessionRequests.isCurrent(expectedSession)) return
+  if (!canRequestDouyinQrImage(status.value?.status)) return
   if (!loginId.value || imageLoading.value || (!force && qrObjectUrl.value)) return
   const requestedLoginId = loginId.value
   const imageGeneration = imageRequests.next()
