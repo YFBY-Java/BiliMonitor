@@ -8,10 +8,10 @@ import {
 
 test('classifies captcha as user action instead of bypassing it', () => {
   assert.equal(classifyPageState({
-    title: '验证码中间页',
+    title: '安全验证',
     text: '请完成下列验证后继续',
     authenticated: false,
-    qrVisible: false
+    qrVisible: true
   }), 'USER_ACTION_REQUIRED')
 })
 
@@ -22,11 +22,11 @@ test('keeps a visible QR waiting when SMS and password login tabs are present', 
   }), 'WAITING')
 })
 
-test('requires user action for a standalone verification-code prompt even with a visible QR', () => {
+test('keeps the real combined login modal waiting when its QR is visible', () => {
   assert.equal(classifyPageState({
-    text: '请输入验证码',
+    text: '扫码登录 验证码登录 密码登录 请输入手机号 请输入验证码 获取验证码',
     qrVisible: true
-  }), 'USER_ACTION_REQUIRED')
+  }), 'WAITING')
 })
 
 test('classifies the observable QR login states', () => {
