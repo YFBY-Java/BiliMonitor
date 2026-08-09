@@ -30,19 +30,21 @@ export class SessionManager {
     const workerSessionId = randomUUID()
     const createdAtMs = this.now()
     const expiresAtMs = createdAtMs + effectiveTtl * 1_000
-    const handle = await this.driver.createSession({
-      workerSessionId,
-      createdAt: new Date(createdAtMs).toISOString(),
-      expiresAt: new Date(expiresAtMs).toISOString()
-    })
-
-    this.sessions.set(workerSessionId, {
-      handle,
+    const session = {
+      handle: undefined,
+      initialization: undefined,
       createdAtMs,
       expiresAtMs,
       status: { status: 'STARTING', message: 'Browser session is starting' },
       bundle: undefined,
-      closed: false
+      closed: false,
+      closePromise: undefined
+    }
+    this.sessions.set(workerSessionId, session)
+    session.initialization = this.#initialize(session, {
+      workerSessionId,
+      createdAt: new Date(createdAtMs).toISOString(),
+      expiresAt: new Date(expiresAtMs).toISOString()
     })
 
     return {
@@ -55,6 +57,9 @@ export class SessionManager {
 
   async qr(workerSessionId) {
     const session = await this.#activeSession(workerSessionId)
+    if (!session.handle) {
+      throw new WorkerError('SESSION_NOT_READY', 'The login session is still initializing', 409)
+    }
     return session.handle.qr()
   }
 
@@ -64,6 +69,9 @@ export class SessionManager {
       return session.status
     }
     if (TERMINAL_STATUSES.has(session.status.status)) {
+      return session.status
+    }
+    if (!session.handle) {
       return session.status
     }
 
@@ -165,10 +173,33 @@ export class SessionManager {
     return true
   }
 
-  async #close(session) {
-    if (!session.closed) {
-      session.closed = true
-      await session.handle.close()
+  async #initialize(session, options) {
+    try {
+      const handle = await this.driver.createSession(options)
+      if (session.closed) {
+        await handle.close()
+        return
+      }
+      session.handle = handle
+    } catch (error) {
+      if (!session.closed) {
+        session.status = {
+          status: 'FAILED',
+          message: error instanceof Error ? error.message : String(error)
+        }
+      }
     }
+  }
+
+  async #close(session) {
+    if (session.closePromise) {
+      return session.closePromise
+    }
+    session.closed = true
+    const handle = session.handle
+    session.closePromise = handle
+      ? Promise.resolve().then(() => handle.close())
+      : Promise.resolve()
+    return session.closePromise
   }
 }
