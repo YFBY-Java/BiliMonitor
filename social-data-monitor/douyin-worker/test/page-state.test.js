@@ -22,6 +22,13 @@ test('keeps a visible QR waiting when SMS and password login tabs are present', 
   }), 'WAITING')
 })
 
+test('requires user action for a standalone verification-code prompt even with a visible QR', () => {
+  assert.equal(classifyPageState({
+    text: '请输入验证码',
+    qrVisible: true
+  }), 'USER_ACTION_REQUIRED')
+})
+
 test('classifies the observable QR login states', () => {
   assert.equal(classifyPageState({ text: '二维码已过期，点击刷新' }), 'EXPIRED')
   assert.equal(classifyPageState({ text: '已扫码，请在手机上确认' }), 'SCANNED')
