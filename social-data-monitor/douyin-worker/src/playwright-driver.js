@@ -6,6 +6,7 @@ import {
 import { WorkerError } from './session-manager.js'
 
 const QR_SELECTORS = Object.freeze([
+  '#animate_qrcode_container img',
   '[class*="qrcode" i] canvas',
   '[class*="qr-code" i] canvas',
   '[class*="qrcode" i] img',

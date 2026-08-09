@@ -2,8 +2,30 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   PlaywrightDouyinDriver,
-  captureSessionBundle
+  captureSessionBundle,
+  findVisibleQrLocator
 } from '../src/playwright-driver.js'
+
+test('finds the visible QR image in the current Douyin animation container', async () => {
+  const qrCandidate = {
+    isVisible: async () => true,
+    boundingBox: async () => ({ width: 180, height: 180 })
+  }
+  const emptyMatches = {
+    count: async () => 0,
+    nth: () => undefined
+  }
+  const page = {
+    frames: () => [],
+    locator: selector => selector === '#animate_qrcode_container img'
+      ? { count: async () => 1, nth: () => qrCandidate }
+      : emptyMatches
+  }
+
+  const result = await findVisibleQrLocator(page)
+
+  assert.strictEqual(result, qrCandidate)
+})
 
 test('captures cookies and every supported browser storage field without a name whitelist', async () => {
   const cookie = {
