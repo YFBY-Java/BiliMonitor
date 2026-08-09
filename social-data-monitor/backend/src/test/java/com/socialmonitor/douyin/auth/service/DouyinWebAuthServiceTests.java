@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -76,10 +77,40 @@ class DouyinWebAuthServiceTests {
 
         var result = service.start();
 
-        assertThat(result.status()).isEqualTo("WAITING");
+        assertThat(result.status()).isEqualTo("STARTING");
         assertThat(result.imageUrl()).isEqualTo("/api/douyin/auth/web/qr/" + result.loginId() + "/image");
         assertThat(result.pollIntervalMs()).isEqualTo(1500);
         verify(sessions).attachWorkerSession(eq(result.loginId()), eq("worker-1"), any());
+    }
+
+    @Test
+    void pollingAdvancesStartingSessionToWaiting() {
+        UUID loginId = UUID.randomUUID();
+        when(sessions.findByLoginId(loginId))
+                .thenReturn(Optional.of(session(loginId, "STARTING", NOW.plusSeconds(180))));
+        when(worker.status("worker-1"))
+                .thenReturn(new WorkerStatus("WAITING", "scan", Map.of("qrAvailable", true)));
+
+        var result = service.poll(loginId);
+
+        assertThat(result.status()).isEqualTo("WAITING");
+        verify(sessions).updateStatus(loginId, "WAITING", Map.of("qrAvailable", true));
+    }
+
+    @Test
+    void deletesWorkerSessionWhenDatabaseAttachmentFails() {
+        when(sessions.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(worker.start(180)).thenReturn(new WorkerSessionStart(
+                "worker-1", "STARTING", OffsetDateTime.parse("2026-07-18T12:03:00Z"), Map.of()
+        ));
+        doThrow(new RuntimeException("db attach failed"))
+                .when(sessions).attachWorkerSession(any(), eq("worker-1"), any());
+
+        assertThatThrownBy(() -> service.start())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("db attach failed");
+
+        verify(worker).delete("worker-1");
     }
 
     @Test

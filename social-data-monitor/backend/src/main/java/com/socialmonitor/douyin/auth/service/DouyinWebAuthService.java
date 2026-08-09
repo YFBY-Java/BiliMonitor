@@ -103,7 +103,7 @@ public class DouyinWebAuthService {
         }
         return new DouyinQrStartView(
                 loginId,
-                "WAITING",
+                normalizeStatus(started.status()),
                 "/api/douyin/auth/web/qr/" + loginId + "/image",
                 properties.qrExpireSeconds(),
                 properties.pollIntervalMs(),

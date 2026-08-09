@@ -139,7 +139,6 @@ public class DouyinAuthSessionRepository {
         jdbcTemplate.update("""
                 UPDATE douyin_auth_session
                 SET worker_session_id = :workerSessionId,
-                    status = 'WAITING',
                     raw_result_json = CAST(:rawResult AS jsonb),
                     updated_at = now()
                 WHERE login_id = :loginId

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +46,22 @@ class DouyinAuthSessionRepositoryTests {
         );
         verify(jdbcTemplate).update(
                 contains("AND status NOT IN ('SUCCESS', 'FAILED', 'EXPIRED')"),
+                any(MapSqlParameterSource.class)
+        );
+    }
+
+    @Test
+    void attachingWorkerSessionPreservesStartingStatus() {
+        UUID loginId = UUID.randomUUID();
+
+        repository.attachWorkerSession(loginId, "worker-1", Map.of("status", "STARTING"));
+
+        verify(jdbcTemplate).update(
+                contains("worker_session_id = :workerSessionId"),
+                any(MapSqlParameterSource.class)
+        );
+        verify(jdbcTemplate, never()).update(
+                contains("status = 'WAITING'"),
                 any(MapSqlParameterSource.class)
         );
     }
