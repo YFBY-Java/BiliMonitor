@@ -48,19 +48,22 @@ public class BilibiliLiveMonitorService {
     private final BilibiliLiveMonitorProperties properties;
     private final RateLimitService rateLimitService;
     private final RetryPolicy retryPolicy;
+    private final BilibiliLiveSnapshotApplicationService snapshotApplicationService;
 
     public BilibiliLiveMonitorService(
             BilibiliLiveMonitorRepository repository,
             BilibiliLiveApiClient apiClient,
             BilibiliLiveMonitorProperties properties,
             RateLimitService rateLimitService,
-            RetryPolicy retryPolicy
+            RetryPolicy retryPolicy,
+            BilibiliLiveSnapshotApplicationService snapshotApplicationService
     ) {
         this.repository = repository;
         this.apiClient = apiClient;
         this.properties = properties;
         this.rateLimitService = rateLimitService;
         this.retryPolicy = retryPolicy;
+        this.snapshotApplicationService = snapshotApplicationService;
     }
 
     public List<BilibiliLiveRoomView> listRooms() {
@@ -114,12 +117,9 @@ public class BilibiliLiveMonitorService {
         if (snapshot.uid() == null || snapshot.roomId() == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "直播间接口没有返回完整 UID/房间号。");
         }
-        BilibiliLiveRoomMonitor room = repository.upsertMonitorFromSnapshot(
-                snapshot,
-                intervalSeconds,
-                snapshot.fetchedAt().plusSeconds(intervalSeconds)
+        BilibiliLiveRoomMonitor room = snapshotApplicationService.initializeMonitor(
+                snapshot, intervalSeconds
         );
-        repository.upsertSnapshot(room.id(), snapshot);
         return toRoomView(room, repository.findRecentSnapshots(room.id(), 48));
     }
 
@@ -229,12 +229,14 @@ public class BilibiliLiveMonitorService {
             BilibiliLiveRoomMonitor room,
             BilibiliFetchedLiveRoomSnapshot snapshot
     ) {
-        OffsetDateTime nextCollectAt = snapshot.fetchedAt().plusSeconds(room.intervalSeconds());
-        recordSuccessEvents(room, snapshot);
-        repository.updateSuccessfulSnapshot(room.id(), snapshot, nextCollectAt);
-        repository.upsertSnapshot(room.id(), snapshot);
-        log.info("Collected Bilibili live room snapshot. uid={}, roomId={}, liveStatus={}, online={}",
-                snapshot.uid(), snapshot.roomId(), snapshot.liveStatus(), snapshot.onlineCount());
+        boolean applied = snapshotApplicationService.applySuccessfulSnapshot(room.id(), snapshot);
+        if (!applied) {
+            log.debug("Ignored stale Bilibili live room snapshot. uid={}, roomId={}, fetchedAt={}",
+                    snapshot.uid(), snapshot.roomId(), snapshot.fetchedAt());
+        } else {
+            log.info("Collected Bilibili live room snapshot. uid={}, roomId={}, liveStatus={}, online={}",
+                    snapshot.uid(), snapshot.roomId(), snapshot.liveStatus(), snapshot.onlineCount());
+        }
         return new BilibiliLiveCollectResultView(
                 room.id(),
                 snapshot.uid(),
@@ -244,7 +246,7 @@ public class BilibiliLiveMonitorService {
                 snapshot.onlineCount(),
                 snapshot.fetchedAt(),
                 snapshot.sourceEndpoint(),
-                "ok"
+                applied ? "ok" : "ignored-stale"
         );
     }
 
@@ -283,41 +285,6 @@ public class BilibiliLiveMonitorService {
                 exception.endpointKey(),
                 exception.getMessage()
         );
-    }
-
-    private void recordSuccessEvents(BilibiliLiveRoomMonitor room, BilibiliFetchedLiveRoomSnapshot snapshot) {
-        if (room.lastErrorType() != null) {
-            repository.insertStatusEvent(
-                    room.id(), room.uid(), room.roomId(), "ERROR_RECOVERED",
-                    room.liveStatus(), snapshot.liveStatus(), room.title(), snapshot.title(), snapshot.onlineCount()
-            );
-        }
-
-        Integer from = room.liveStatus();
-        Integer to = snapshot.liveStatus();
-        if (from != null && to != null && !from.equals(to)) {
-            String eventType = statusEventType(from, to);
-            if (eventType != null) {
-                repository.insertStatusEvent(
-                        room.id(), snapshot.uid(), snapshot.roomId(), eventType,
-                        from, to, room.title(), snapshot.title(), snapshot.onlineCount()
-                );
-            }
-        }
-
-        if (hasText(room.title()) && hasText(snapshot.title()) && !room.title().equals(snapshot.title())) {
-            repository.insertStatusEvent(
-                    room.id(), snapshot.uid(), snapshot.roomId(), "TITLE_CHANGED",
-                    from, to, room.title(), snapshot.title(), snapshot.onlineCount()
-            );
-        }
-    }
-
-    private String statusEventType(int from, int to) {
-        if (to == 1 && from != 1) return "LIVE_STARTED";
-        if (from == 1 && to != 1) return "LIVE_ENDED";
-        if (to == 2 && from != 2) return "ROUND_STARTED";
-        return null;
     }
 
     private BilibiliFetchedLiveRoomSnapshot fetchByRoomIdWithDetails(Long roomId) {
@@ -550,10 +517,6 @@ public class BilibiliLiveMonitorService {
                 event.onlineCount(),
                 event.occurredAt()
         );
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
     }
 
     @FunctionalInterface

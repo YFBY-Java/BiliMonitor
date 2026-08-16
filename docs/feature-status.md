@@ -1,6 +1,6 @@
 # 当前功能状态
 
-最后更新：2026-06-19
+最后更新：2026-08-16
 
 ## 已实现
 
@@ -53,6 +53,11 @@
 - 直播间卡片横向展示，点击展开详情。
 - 直播间详情区已接入“房间观众与大航海”榜单，支持房间观众在线榜、进房、日榜、周榜、月榜，以及大航海周榜、月榜、陪伴榜。
 - 直播榜单支持手动刷新快照，保存到 `bilibili_live_rank_snapshot` 和 `bilibili_live_rank_entry`，避免每次页面切换都重新打外部接口。
+- 直播页支持按场次查看 `OPEN`、`END_PENDING`、`CLOSED`、`INCOMPLETE` 边界、WebSocket 在线覆盖、弹幕/礼物/付费统计和 Top 身份记录。
+- WebSocket 在线期间成功解析并持久化的受支持事件保存到 `bilibili_live_session_event`；强上游 ID 去重，无强 ID 的真实接收逐条保留。
+- 单场支持弹幕 CSV、礼物 CSV、用户 CSV 和带 manifest/summary 的完整 ZIP 导出。
+- 身份人数只统计正 UID；UID 缺失的互动、送礼和付费单独显示未解析事件数，不按昵称猜测或合并人数。
+- 消费金额统一使用 `milli_yuan`，免费/银瓜子礼物不会混入人民币单价。
 - 浅色/深色主题切换，主题状态保存在 `localStorage`。
 - 深色主题已经按近期反馈做过多轮颜色、文字间距和边框优化。
 
@@ -67,6 +72,10 @@
 - 直播榜单服务：[`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/rank/service/BilibiliLiveRankService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/rank/service/BilibiliLiveRankService.java)
 - 数据迁移：[`../social-data-monitor/backend/src/main/resources/db/migration/V4__bilibili_live_monitor.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V4__bilibili_live_monitor.sql)
 - 榜单数据迁移：[`../social-data-monitor/backend/src/main/resources/db/migration/V8__bilibili_live_rank_monitor.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V8__bilibili_live_rank_monitor.sql)
+- 场次边界服务：[`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/service/BilibiliLiveSessionBoundaryService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/service/BilibiliLiveSessionBoundaryService.java)
+- 场次查询/导出：[`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/)
+- 事件摄取：[`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java)
+- 场次数据迁移：[`../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql)
 - 前端页面：[`../social-data-monitor/frontend/src/views/bilibili-live/BilibiliLiveView.vue`](../social-data-monitor/frontend/src/views/bilibili-live/BilibiliLiveView.vue)
 - 前端 API：[`../social-data-monitor/frontend/src/api/bilibiliLive.ts`](../social-data-monitor/frontend/src/api/bilibiliLive.ts)
 
@@ -215,8 +224,12 @@
   - `GET /api/subjects/7/workbench` 可返回工作台聚合数据和直播监控绑定。
   - `GET /api/bilibili/live-monitor/rooms/7/ranks/summary` 可返回房间观众和大航海榜单快照。
   - 使用系统 Chrome headless 检查过 `http://127.0.0.1:5173/subjects/7`，右侧卡片默认弹幕视图、三段切换控件和整体布局没有空白或明显错位。
+- 2026-08-16 验证过直播场次、事件留存、导出和场次面板：
+  - 后端完整测试 `212` 项通过，`0` 失败、`0` 错误。
+  - 前端完整测试 `24` 项通过，`npm run typecheck` 和 `npm run build` 通过。
+  - 场次身份列表固定为排名、昵称、UID、统计、金额单行对齐；超长昵称/UID 保留悬停全文。
 
-最近一次业务修改验证时间：2026-06-19。
+最近一次业务修改验证时间：2026-08-16。
 
 ## 已知限制和风险
 
@@ -246,6 +259,8 @@
 `bilibili_follower_snapshot.monitored_user_id` 使用 `ON DELETE CASCADE`。删除监控用户会连带删除其历史趋势数据。如果只想暂停，请使用停用。
 
 直播监控同样如此：`bilibili_live_room_snapshot` 和 `bilibili_live_status_event` 关联 `bilibili_live_room_monitor(id)`，删除直播间监控会删除对应快照和事件。只想停止采集时请停用。
+
+`bilibili_live_session` 和 `bilibili_live_session_event` 也会随直播间监控级联删除。场次导出不是独立归档；需要长期保留时应先下载 ZIP，再决定是否删除监控。
 
 ### 弹幕昵称补全不是历史修复
 
@@ -278,7 +293,7 @@ B站扫码登录首期闭环已经验证通过。后续仍需注意：
 - 增加“刷新基础资料但不采集粉丝”的轻量操作，目前资料随 card 采集刷新。
 - 为删除操作提供“停用优先”的二次确认文案，减少误删历史。
 - 如果监控用户规模扩大，引入更明确的队列和速率策略。
-- 直播监控后续可补直播状态事件筛选、分区筛选、批量刷新和更明确的数据导出。
+- 直播监控后续可补直播状态事件筛选、分区筛选和批量刷新。
 - 用户监控工作台后续可补可视化布局编辑、更多 Widget、弹幕关键词/事件统计、用户级数据导出。
 - 如果接口返回结构变化，先更新 [`bilibili-api-notes.md`](bilibili-api-notes.md) 和 [`../social-data-monitor/docs/bilibili-follower-api-research.md`](../social-data-monitor/docs/bilibili-follower-api-research.md)，再改客户端解析。
 - 扫码登录下一步优先补 Cookie 刷新链路和生产级管理员鉴权。

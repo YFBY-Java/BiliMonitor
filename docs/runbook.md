@@ -1,6 +1,6 @@
 # 运行指南
 
-最后更新：2026-06-17
+最后更新：2026-08-16
 
 本指南以 Windows PowerShell 为主，因为当前工作区运行在 `.`。
 
@@ -225,6 +225,29 @@ app:
 | `SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_CLIENT_VERSION` | `1.14.3` | WebSocket 鉴权包中的客户端版本。 |
 
 说明：弹幕模块默认优先使用已保存扫码登录态调用 `getDanmuInfo`，并在 WebSocket 鉴权包中写入同一账号 mid，从而减少游客态昵称脱敏。登录态不可用、过期或触发风控时会回退匿名公开信息流；系统不做验证码或复杂风控绕过。旧历史弹幕如果已经保存了脱敏昵称且没有 UID，无法可靠补全；新弹幕若包内带 UID，会尝试通过公开用户卡片接口补全昵称。
+
+### 直播场次与导出检查
+
+后端启动时 Flyway 会自动应用 `V10__bilibili_live_session.sql`。直播页的场次面板不需要额外配置；它读取直播场次、WebSocket 在线覆盖和已持久化事件。
+
+```powershell
+# 把占位符替换成实际 monitorId/sessionId
+Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/rooms/{monitorId}/sessions
+Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}
+Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/users
+
+Invoke-WebRequest `
+  'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/export?category=all' `
+  -OutFile bilibili-live-session.zip
+```
+
+排查统计或导出时：
+
+- 先看 `coverageStatus`。`BOUNDARY_ONLY` 和 `NO_ONLINE_COVERAGE` 不应被理解成平台真实零值。
+- 检查 `transportSessionCount`、`captureStartedAt`、`captureEndedAt` 是否存在合理的 WebSocket 在线区间。
+- 完整 ZIP 应包含 `manifest.json`、`summary.csv`、`danmaku.csv`、`gifts.csv`、`users.csv`。
+- CSV/ZIP 只覆盖部署后 WebSocket 在线期间成功解析并持久化的受支持事件，不代表平台全量历史。
+- 详细字段、状态与金额口径见 [`bilibili-live-session-data.md`](bilibili-live-session-data.md)。
 
 ## 数据库
 

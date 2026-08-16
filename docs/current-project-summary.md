@@ -1,6 +1,6 @@
 # 当前项目工程详细总结
 
-最后更新：2026-07-06
+最后更新：2026-08-16
 
 本文是 `.` 当前工程的一页式深度总结，面向“下次的我”和“下次接手的 Codex”。它不替代已有专题文档，而是把当前真实工程状态、运行入口、代码结构、核心链路、数据表、API、前端页面和已知风险串起来。
 
@@ -10,13 +10,13 @@
 - 技术栈是 Spring Boot 3.3.6 + PostgreSQL + Flyway + MyBatis-Plus，前端是 Vue 3 + Vite + TypeScript + Element Plus + ECharts。
 - 当前已完整落地三条 B站主线：
   - `/bilibili`：B站用户粉丝趋势监控。
-  - `/bilibili/live`：B站直播间监控、榜单、房间详情和直播弹幕辅助能力。
+  - `/bilibili/live`：B站直播间监控、榜单、房间详情、直播弹幕、直播场次统计和 CSV/ZIP 导出。
   - `/subjects`、`/subjects/:subjectId`：指定用户聚合工作台，把同一 B站用户的粉丝、直播热度、弹幕、榜单和采集健康聚合展示。
 - B站扫码登录态已经接入 `/bilibili` 页面和 `/api/bilibili/auth/**`，可保存 Cookie、CSRF、refreshToken，弹幕 `getDanmuInfo` 会优先复用登录态，失败时回退游客态。
 - 弹幕 WebSocket 支持 `protover=0/1/2/3`，自动模式候选顺序优先配置值、`3`、`2`、`1`、`0`。
 - 直播间榜单已支持房间观众和大航海数据，榜单刷新接口前端超时时间单独放宽到 120 秒。
 - 采集间隔配置范围大，粉丝和直播监控都支持最小 `1` 秒、最大 `2592000` 秒，但仍有全局请求间隔和失败退避。
-- 根目录当前不是 Git 仓库，`git status --short` 返回 `fatal: not a git repository`。如果要提交，请先确认真实版本控制位置。
+- 根目录是 Git 仓库，当前远端为 `origin`；提交前仍应先检查分支、工作区和待提交文件。
 - 当前后端 `/api/**` 开发期放行，没有生产级鉴权。登录态完整字段也可在本机页面查看并一键复制，生产前必须加权限保护。
 
 ## 仓库目录
@@ -173,6 +173,8 @@ social-data-monitor/backend/src/main/resources/db/migration/
 | `V6__bilibili_live_danmaku_monitor.sql` | 弹幕 WebSocket 会话、指标桶、最近弹幕。 |
 | `V7__bilibili_auth_credential.sql` | B站扫码登录态索引，复用 `platform_credential`。 |
 | `V8__bilibili_live_rank_monitor.sql` | 直播间房间观众和大航海榜单快照、榜单明细。 |
+| `V9__douyin_auth_credential.sql` | 抖音 OAuth/Web 登录态会话与凭据。 |
+| `V10__bilibili_live_session.sql` | B站直播场次、受支持事件和弹幕传输真实在线时间。 |
 
 关键业务表：
 
@@ -184,6 +186,8 @@ social-data-monitor/backend/src/main/resources/db/migration/
 - `bilibili_live_danmaku_session`：弹幕 WebSocket 会话。
 - `bilibili_live_danmaku_metric_bucket`：弹幕速率、点赞、看过人数、心跳人气等指标桶。
 - `bilibili_live_danmaku_recent`：最近弹幕。
+- `bilibili_live_session`：直播场次边界和状态。
+- `bilibili_live_session_event`：单场受支持事件、身份、礼物/付费和原始 JSON。
 - `bilibili_live_rank_snapshot`：房间观众、大航海榜单快照。
 - `bilibili_live_rank_entry`：榜单明细，包含用户昵称、头像、排名、贡献值、舰长等级、陪伴天数等。
 - `monitored_subject`：指定用户聚合对象。
@@ -322,6 +326,13 @@ Subject 聚合链路：
 - `GET /api/bilibili/live-monitor/rooms/{roomMonitorId}/danmaku/recent?limit={n}`
 - `GET /api/bilibili/live-monitor/rooms/{roomMonitorId}/danmaku/metrics?range={range}`
 
+直播场次与导出：
+
+- `GET /api/bilibili/live-monitor/rooms/{roomMonitorId}/sessions?limit={n}`
+- `GET /api/bilibili/live-monitor/sessions/{sessionId}`
+- `GET /api/bilibili/live-monitor/sessions/{sessionId}/users?limit={n}`
+- `GET /api/bilibili/live-monitor/sessions/{sessionId}/export?category=danmaku|gifts|users|all`
+
 直播榜单：
 
 - `GET /api/bilibili/live-monitor/rooms/{roomMonitorId}/ranks/summary`
@@ -390,6 +401,7 @@ Subject：
 - `frontend/src/api/http.ts`：Axios 实例，默认 `baseURL` 为空，Vite 代理 `/api` 到后端。
 - `frontend/src/api/bilibili.ts`：粉丝监控 API。
 - `frontend/src/api/bilibiliLive.ts`：直播、弹幕、榜单 API。
+- `frontend/src/api/bilibiliLiveSessions.ts`：直播场次查询和导出 API。
 - `frontend/src/api/bilibiliAuth.ts`：B站扫码登录 API。
 - `frontend/src/api/subjects.ts`：Subject 聚合 API。
 
@@ -485,6 +497,8 @@ Subject：
 - 房间观众和大航海榜单：在线榜、进房、日榜、周榜、月榜、大航海周榜、月榜、陪伴榜。
 - 榜单排序方式和升降序。
 - 榜单列表最多 100 条，内部可滚动。
+- 直播场次边界、WebSocket 在线覆盖、弹幕/礼物/付费、Top 身份记录和消费金额。
+- 单场弹幕 CSV、礼物 CSV、用户 CSV，以及含 manifest/summary 的完整 ZIP。
 - 浅色/深色主题。
 
 注意：
@@ -492,6 +506,7 @@ Subject：
 - 房间观众括号数来自榜单接口，不是 `Room/get_info.data.online`。
 - 大航海部分接口可匿名使用，房间观众 `queryContributionRank` 需要 WBI。
 - 榜单刷新可能较慢，前端已放宽为 120 秒，但仍受外部接口和限频影响。
+- 场次统计只代表 WebSocket 在线期间成功解析并持久化的受支持事件；历史边界、无在线覆盖和真实在线零值会分开标识。
 
 ### B站指定用户监控工作台
 
@@ -632,15 +647,12 @@ Get-Content -Encoding UTF8 social-data-monitor/frontend/src/router/index.ts
 git status --short
 ```
 
-其中 `git status --short` 在根目录返回 `fatal: not a git repository`，说明当前工作区没有可用 Git 元数据。
-
-本次没有运行后端编译、后端测试、前端 typecheck 或 build，因为任务目标是阅读和文档沉淀，没有修改业务代码。
+2026-08-16 已运行后端完整测试（212 项）、前端完整测试（24 项）、前端 typecheck 和生产构建，均通过。
 
 ## 已知风险和下次建议
 
 风险：
 
-- 根目录当前不是 Git 仓库，提交前必须确认版本控制位置。
 - `/api/**` 开发期放行，生产不可直接暴露。
 - B站登录态完整展示和一键复制是本机开发能力，生产必须加权限、审计和脱敏策略。
 - B站接口随时可能变更，尤其是 WBI、榜单、弹幕包结构和风控码。

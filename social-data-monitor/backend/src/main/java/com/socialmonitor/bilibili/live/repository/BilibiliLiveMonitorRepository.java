@@ -47,8 +47,25 @@ public class BilibiliLiveMonitorRepository {
         return jdbcTemplate.query(sql, Map.of("id", id), this::mapMonitor).stream().findFirst();
     }
 
+    public Optional<BilibiliLiveRoomMonitor> findByIdForUpdate(Long id) {
+        String sql = "SELECT * FROM bilibili_live_room_monitor WHERE id = :id FOR UPDATE";
+        return jdbcTemplate.query(sql, Map.of("id", id), this::mapMonitor).stream().findFirst();
+    }
+
+    public void lockInitializationUid(Long uid) {
+        jdbcTemplate.queryForList(
+                "SELECT pg_advisory_xact_lock(-CAST(:uid AS bigint))",
+                Map.of("uid", uid)
+        );
+    }
+
     public Optional<BilibiliLiveRoomMonitor> findByUid(Long uid) {
         String sql = "SELECT * FROM bilibili_live_room_monitor WHERE uid = :uid";
+        return jdbcTemplate.query(sql, Map.of("uid", uid), this::mapMonitor).stream().findFirst();
+    }
+
+    public Optional<BilibiliLiveRoomMonitor> findByUidForUpdate(Long uid) {
+        String sql = "SELECT * FROM bilibili_live_room_monitor WHERE uid = :uid FOR UPDATE";
         return jdbcTemplate.query(sql, Map.of("uid", uid), this::mapMonitor).stream().findFirst();
     }
 
@@ -69,7 +86,7 @@ public class BilibiliLiveMonitorRepository {
         return jdbcTemplate.query(sql, Map.of("now", now, "limit", limit), this::mapMonitor);
     }
 
-    public BilibiliLiveRoomMonitor upsertMonitorFromSnapshot(
+    public Optional<BilibiliLiveRoomMonitor> upsertMonitorFromSnapshot(
             BilibiliFetchedLiveRoomSnapshot snapshot,
             int intervalSeconds,
             OffsetDateTime nextCollectAt
@@ -114,11 +131,15 @@ public class BilibiliLiveMonitorRepository {
                     backoff_until = NULL,
                     source_endpoint = EXCLUDED.source_endpoint,
                     updated_at = now()
+                WHERE EXCLUDED.last_success_at >= GREATEST(
+                    COALESCE(bilibili_live_room_monitor.last_snapshot_at, '-infinity'::timestamptz),
+                    COALESCE(bilibili_live_room_monitor.last_success_at, '-infinity'::timestamptz)
+                )
                 RETURNING *
                 """;
-        return jdbcTemplate.queryForObject(sql, snapshotParams(snapshot)
+        return jdbcTemplate.query(sql, snapshotParams(snapshot)
                 .addValue("intervalSeconds", intervalSeconds)
-                .addValue("nextCollectAt", nextCollectAt), this::mapMonitor);
+                .addValue("nextCollectAt", nextCollectAt), this::mapMonitor).stream().findFirst();
     }
 
     public void updateSuccessfulSnapshot(Long monitorId, BilibiliFetchedLiveRoomSnapshot snapshot, OffsetDateTime nextCollectAt) {

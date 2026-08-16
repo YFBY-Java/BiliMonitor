@@ -1,6 +1,6 @@
 # 架构说明
 
-最后更新：2026-06-19
+最后更新：2026-08-16
 
 ## 技术栈
 
@@ -69,6 +69,14 @@ B站直播弹幕模块：
 - [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/repository/BilibiliLiveDanmakuRepository.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/repository/BilibiliLiveDanmakuRepository.java)：弹幕 session、指标桶和最近弹幕读写。
 - [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/controller/BilibiliLiveDanmakuController.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/controller/BilibiliLiveDanmakuController.java)：弹幕启动、停止、状态、最近消息、指标 API。
 
+B站直播场次与事件模块：
+
+- [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/service/BilibiliLiveSessionBoundaryService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/service/BilibiliLiveSessionBoundaryService.java)：串行化 REST/WebSocket 边界信号，维护 `OPEN`、`END_PENDING`、`CLOSED` 和 `INCOMPLETE` 场次状态。
+- [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java)：将受支持的弹幕事件归属到直播场次，按强上游 ID 或单连接接收序号去重后持久化。
+- [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/query/BilibiliLiveSessionQueryService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/query/BilibiliLiveSessionQueryService.java)：查询场次汇总和 Top 身份记录，并显式返回采集覆盖状态。
+- [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/export/BilibiliLiveSessionExportService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/export/BilibiliLiveSessionExportService.java)：流式导出弹幕、礼物、用户 CSV 或包含 manifest/summary 的完整 ZIP。
+- [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/controller/BilibiliLiveSessionController.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/controller/BilibiliLiveSessionController.java) 与 [`BilibiliLiveSessionExportController.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/controller/BilibiliLiveSessionExportController.java)：场次查询和导出 API。
+
 B站直播榜单模块：
 
 - [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/rank/client/BilibiliLiveRankApiClient.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/rank/client/BilibiliLiveRankApiClient.java)：房间观众榜和大航海榜外部接口调用与解析。
@@ -114,6 +122,23 @@ Subject 聚合层：
 3. 服务层请求 card 接口；若 card 在解析、网络、服务端错误时失败，会尝试 `x/relation/stat` 作为粉丝数兜底。
 4. 成功后更新用户当前状态、下一次采集时间和历史快照。
 5. 失败后记录错误类型、错误信息和失败退避后的下一次采集时间。
+
+直播场次与事件链路：
+
+```text
+REST 直播快照 + WebSocket LIVE/PREPARING/互动事件
+  -> BilibiliLiveSessionBoundaryService
+  -> BilibiliLiveEventIngestionService
+  -> bilibili_live_session + bilibili_live_session_event
+  -> BilibiliLiveSessionQueryService / BilibiliLiveSessionExportService
+  -> /bilibili/live 场次面板 + CSV/ZIP
+```
+
+- REST 和 WebSocket 信号都先锁定同一直播间监控记录，避免旧快照或迟到事件覆盖较新的场次边界。
+- `PREPARING` 先进入 `END_PENDING`，由后续 REST 复核确认下播；真实 `LIVE` key 变化可识别重开场。
+- 只有可归属、受支持且成功持久化的事件进入场次统计；旧历史状态事件只回填边界，不伪造缺失明细。
+- WebSocket `connected_at` 到保守结束时间形成采集覆盖区间；查询和导出据此区分真实零值、无在线覆盖和历史边界数据。
+- 详细口径见 [`bilibili-live-session-data.md`](bilibili-live-session-data.md)。
 
 ## B站直播监控链路
 
@@ -235,6 +260,15 @@ Subject 聚合层：
 | `GET` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/danmaku/status` | 查询弹幕连接和分钟级统计。 |
 | `GET` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/danmaku/recent` | 查询最近弹幕。 |
 | `GET` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/danmaku/metrics` | 查询弹幕指标桶。 |
+
+直播场次与导出 API：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/bilibili/live-monitor/rooms/{monitorId}/sessions` | 查询直播间最近场次，可传 `limit`。 |
+| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}` | 查询单场边界、覆盖状态和统计汇总。 |
+| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/users` | 查询单场 Top 身份记录，可传 `limit`。 |
+| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/export` | 按 `category=danmaku|gifts|users|all` 下载 CSV 或 ZIP。 |
 
 Subject API：
 

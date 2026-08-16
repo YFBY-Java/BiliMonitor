@@ -1,6 +1,6 @@
 # 前端页面与交互说明
 
-最后更新：2026-06-19
+最后更新：2026-08-16
 
 ## 技术栈
 
@@ -53,6 +53,7 @@ B站粉丝监控 API：
 B站直播监控 API：
 
 - [`../social-data-monitor/frontend/src/api/bilibiliLive.ts`](../social-data-monitor/frontend/src/api/bilibiliLive.ts)
+- [`../social-data-monitor/frontend/src/api/bilibiliLiveSessions.ts`](../social-data-monitor/frontend/src/api/bilibiliLiveSessions.ts)：直播场次查询和导出。
 
 Subject 用户监控 API：
 
@@ -107,6 +108,7 @@ Subject 用户监控 API：
 - 每张小卡片有独立“趋势”选择按钮，最多 4 个直播间进入趋势图，避免点击卡片时误选趋势。
 - 详情区展示更完整的直播间资料和操作按钮。
 - 趋势图支持选择、取消选择和拖动交换顺序。
+- [`BilibiliLiveSessionPanel.vue`](../social-data-monitor/frontend/src/views/bilibili-live/components/BilibiliLiveSessionPanel.vue) 展示场次边界、覆盖状态、统计、Top 身份记录和 CSV/ZIP 导出。
 
 当前设计重点：
 
@@ -115,6 +117,7 @@ Subject 用户监控 API：
 - 深色模式最近按用户反馈调浅，加入更柔和的粉色光感和半透明卡片感。
 - 页面头部近期改为方角，避免渐变背景和圆角叠加产生尖角残影。
 - 继续改样式时，总体结构不要大动，优先处理间距、文字层级、边框柔和度和局部组件状态。
+- Top 身份记录保持单行固定列：排名、昵称、UID、统计、金额分别对齐；昵称和金额列预留较大空间，超长昵称/UID 省略但可悬停查看全文，不要再改成多行堆叠。
 
 ## B站指定用户监控页
 
@@ -196,6 +199,7 @@ Subject 用户监控 API：
 - 若用户工作台双指标图显示异常，检查 `BilibiliFollowerLiveHeatWidget.vue` 的 `axisBounds`、`timeBounds` 和传入的 `SubjectTrend.points`。
 - 若粉丝 API 数据字段变化，先改 `frontend/src/api/bilibili.ts` 的类型，再改页面消费逻辑。
 - 若直播 API 数据字段变化，先改 `frontend/src/api/bilibiliLive.ts` 的类型，再改页面消费逻辑。
+- 若直播场次 API 或导出字段变化，先改 `frontend/src/api/bilibiliLiveSessions.ts`，再改 `BilibiliLiveSessionPanel.vue`。
 - 若 Subject API 数据字段变化，先改 `frontend/src/api/subjects.ts` 的类型，再改 `views/subjects/`。
 - 若用户工作台右侧榜单视图没有数据，先确认当前 Subject 是否绑定了 `bilibili_live_room_monitor_id`，再检查 `fetchBilibiliLiveRankSummary(roomMonitorId)` 的返回和 `/api/bilibili/live-monitor/rooms/{roomMonitorId}/ranks/summary`。
 - 若要验证响应式，使用浏览器打开 `http://127.0.0.1:5173/bilibili`、`http://127.0.0.1:5173/bilibili/live` 或 `http://127.0.0.1:5173/subjects/{subjectId}` 后切换视口。

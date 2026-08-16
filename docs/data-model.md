@@ -1,6 +1,6 @@
 # 数据模型与存储说明
 
-最后更新：2026-06-19
+最后更新：2026-08-16
 
 ## 迁移文件
 
@@ -16,6 +16,8 @@
 | [`V6__bilibili_live_danmaku_monitor.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V6__bilibili_live_danmaku_monitor.sql) | 新增直播弹幕 WebSocket session、分钟级指标桶和最近弹幕表。 |
 | [`V7__bilibili_auth_credential.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V7__bilibili_auth_credential.sql) | 为 B站 Web Cookie 登录态增加唯一索引和按平台/类型/状态查询索引。 |
 | [`V8__bilibili_live_rank_monitor.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V8__bilibili_live_rank_monitor.sql) | 新增直播房间观众、大航海榜单快照和榜单明细表。 |
+| [`V9__douyin_auth_credential.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V9__douyin_auth_credential.sql) | 新增抖音 OAuth/Web 登录态会话和凭据存储。 |
+| [`V10__bilibili_live_session.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql) | 新增 B站直播场次、场次事件，并为弹幕传输会话增加真实连接时间。 |
 
 ## B站监控用户表
 
@@ -296,6 +298,7 @@
 | `live_room_monitor_id` | 关联直播间监控。 |
 | `room_id` | 直播间房间号。 |
 | `started_at` / `ended_at` | 连接开始和结束时间。 |
+| `connected_at` | WebSocket 鉴权成功并真正进入在线状态的时间；场次覆盖区间从这里开始。 |
 | `status` | `CONNECTING`、`AUTHENTICATING`、`CONNECTED`、`STOPPED`、`CLOSED`、`ERROR` 等。 |
 | `connect_host` | 实际连接的 WebSocket host。 |
 | `last_heartbeat_at` | 最近心跳时间。 |
@@ -347,6 +350,59 @@
 
 - `BilibiliLiveDanmakuRepository.trimRecent` 按配置保留最近 N 条，默认来自 `SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_RECENT_LIMIT=200`。
 - 旧历史弹幕如果入库时没有 UID 或完整昵称，后续无法保证恢复，只能继续展示当时保存的 `display_name`。
+
+## B站直播场次表
+
+表名：`bilibili_live_session`。
+
+用途：把 REST 状态快照、WebSocket `LIVE` / `PREPARING` 信号整理成可查询的单场直播边界。
+
+关键字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `monitor_id`、`uid`、`room_id` | 所属直播间监控、主播 UID 和真实房间号。 |
+| `state` | `OPEN`、`END_PENDING`、`CLOSED` 或 `INCOMPLETE`。 |
+| `platform_live_time`、`live_key` | 平台开播时间与场次身份键，用于识别同一场或重新开播。 |
+| `started_at`、`start_detected_at`、`start_source` | 开始边界、检测时间和来源。 |
+| `end_signal_at` | 首个待复核下播信号。 |
+| `ended_at`、`end_detected_at`、`end_source` | 已确认结束边界、检测时间和来源；`INCOMPLETE` 不伪造结束时间。 |
+| `last_live_observed_at`、`last_observed_at` | 最近直播信号和最近任意观察时间。 |
+| `title_at_start`、`title_at_end` | 场次首尾标题。 |
+
+约束与回填：
+
+- 同一直播间最多有一个 `OPEN` / `END_PENDING` 场次。
+- 平台开播时间和 `live_key` 分别有唯一索引，避免重复场次。
+- `V10` 会把成对的旧 `LIVE_STARTED` / `LIVE_ENDED` 状态事件回填为 `CLOSED`；只有开始边界的历史记录保存为 `INCOMPLETE`。
+
+## B站直播场次事件表
+
+表名：`bilibili_live_session_event`。
+
+用途：保存 WebSocket 在线期间成功解析并持久化的受支持事件，供单场统计、身份聚合和导出使用。
+
+关键字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `live_session_id` | 所属直播场次。 |
+| `transport_session_id`、`receipt_ordinal` | 来源 WebSocket 连接和该连接内接收序号，用于覆盖追踪与弱 ID 事件逐条保存。 |
+| `event_key`、`source_event_id` | 内部事件键和可靠上游事件 ID。 |
+| `event_kind`、`command`、`protocol_version` | 规范化事件类型、B站命令和协议版本。 |
+| `sender_uid`、`sender_name`、`medal_name` | 发送者 UID、昵称和粉丝牌。只有正 UID 才作为已识别身份聚合。 |
+| `message_text` | 弹幕、SC 或通知文本。 |
+| `gift_id`、`gift_name`、`gift_count`、`coin_type` | 礼物字段。 |
+| `unit_price_milli_yuan`、`paid_amount_milli_yuan`、`paid` | 人民币千分之一元口径的单价、总额和是否付费；免费礼物单价为空。 |
+| `guard_level`、`amount_source` | 大航海等级和金额来源。 |
+| `occurred_at`、`received_at` | 平台事件时间和本机接收时间。 |
+| `raw_payload_json` | 原始事件 JSON。 |
+
+去重策略：
+
+- 有可靠 `source_event_id` 的事件按 `(monitor_id, event_kind, source_event_id)` 去重。
+- 没有可靠上游 ID 的事件使用 `transport_session_id + receipt_ordinal` 生成事件键，相同内容的两次真实接收不会被错误合并。
+- 查询与导出的完整口径见 [`bilibili-live-session-data.md`](bilibili-live-session-data.md)。
 
 ## B站 Web 登录态凭据
 

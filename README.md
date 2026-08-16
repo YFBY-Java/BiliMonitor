@@ -191,7 +191,7 @@ spring:
 
 #### 3.3 库表结构总览
 
-当前数据库按“通用平台能力 + Bilibili 业务监控 + Subject 聚合工作台”组织。建表 SQL 由 `V1` 到 `V8` 的 Flyway migration 管理，核心表如下。
+当前数据库按“通用平台能力 + Bilibili 业务监控 + Subject 聚合工作台”组织。建表 SQL 由 `V1` 到 `V10` 的 Flyway migration 管理，核心表如下。
 
 | 表组 | 表 | 来源迁移 | 用途 |
 | --- | --- | --- | --- |
@@ -205,6 +205,7 @@ spring:
 | Subject 工作台 | `monitored_subject`、`subject_bilibili_binding`、`subject_widget_layout` | `V5__subject_monitor.sql` | 指定用户聚合对象、Bilibili 监控绑定和工作台卡片布局。 |
 | Bilibili 弹幕 | `bilibili_live_danmaku_session`、`bilibili_live_danmaku_metric_bucket`、`bilibili_live_danmaku_recent` | `V6__bilibili_live_danmaku_monitor.sql` | 弹幕 WebSocket 会话、分钟级指标桶和最近弹幕。 |
 | Bilibili 榜单 | `bilibili_live_rank_snapshot`、`bilibili_live_rank_entry` | `V8__bilibili_live_rank_monitor.sql` | 房间观众榜和大航海榜单快照、榜单明细。 |
+| Bilibili 直播场次 | `bilibili_live_session`、`bilibili_live_session_event` | `V10__bilibili_live_session.sql` | 直播场次边界、受支持事件、身份/金额统计和单场导出。 |
 
 关系摘要：
 
@@ -212,6 +213,7 @@ spring:
 - `bilibili_live_room_snapshot.monitor_id` 和 `bilibili_live_status_event.monitor_id` 关联 `bilibili_live_room_monitor.id`，删除直播间监控时级联删除直播历史。
 - `bilibili_live_danmaku_*` 表关联 `bilibili_live_room_monitor.id`，删除直播间监控时级联删除弹幕会话、指标和最近弹幕。
 - `bilibili_live_rank_snapshot.monitor_id` 和 `bilibili_live_rank_entry.monitor_id` 关联 `bilibili_live_room_monitor.id`，删除直播间监控时级联删除榜单。
+- `bilibili_live_session.monitor_id` 关联 `bilibili_live_room_monitor.id`，场次事件关联场次和弹幕传输会话；删除直播间监控时级联删除场次与事件。
 - `subject_bilibili_binding.subject_id` 关联 `monitored_subject.id`；删除 Subject 只删除聚合层绑定和布局，不删除底层 Bilibili 监控数据。
 - `subject_bilibili_binding.bilibili_user_monitor_id` 和 `subject_bilibili_binding.bilibili_live_room_monitor_id` 分别关联粉丝监控和直播间监控；底层监控删除时绑定字段置空。
 
@@ -956,6 +958,8 @@ SubjectListView.vue / SubjectWorkbenchView.vue
 | `V6__bilibili_live_danmaku_monitor.sql` | 新增直播弹幕 session、分钟级指标桶和最近弹幕表。 |
 | `V7__bilibili_auth_credential.sql` | 为 Bilibili Web Cookie 登录态增加唯一索引和查询索引。 |
 | `V8__bilibili_live_rank_monitor.sql` | 新增直播房间观众、大航海榜单快照和榜单明细表。 |
+| `V9__douyin_auth_credential.sql` | 新增抖音 OAuth/Web 登录态会话和凭据存储。 |
+| `V10__bilibili_live_session.sql` | 新增 Bilibili 直播场次、场次事件，并为弹幕连接增加 `connected_at`。 |
 
 ### 基础系统与平台表
 
@@ -1166,6 +1170,7 @@ SubjectListView.vue / SubjectWorkbenchView.vue
 | `live_room_monitor_id` | 关联直播间监控。 |
 | `room_id` | 直播间房间号。 |
 | `started_at`、`ended_at` | 连接开始和结束时间。 |
+| `connected_at` | WebSocket 鉴权成功并真正在线的时间，用于计算采集覆盖区间。 |
 | `status` | `CONNECTING`、`AUTHENTICATING`、`CONNECTED`、`STOPPED`、`CLOSED`、`ERROR` 等。 |
 | `connect_host` | 实际连接的 WebSocket host。 |
 | `last_heartbeat_at` | 最近心跳时间。 |
@@ -1213,6 +1218,12 @@ SubjectListView.vue / SubjectWorkbenchView.vue
 保留策略：
 
 - 后端按 `SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_RECENT_LIMIT` 保留最近 N 条，默认 `200`。
+
+### Bilibili 直播场次与事件表
+
+`bilibili_live_session` 保存 `OPEN`、`END_PENDING`、`CLOSED`、`INCOMPLETE` 场次边界；`bilibili_live_session_event` 保存 WebSocket 在线期间成功解析并持久化的受支持事件，包括弹幕、礼物、SC、大航海、直播状态、指标和通知。事件保留发生/接收时间、传输会话、发送者、礼物、金额和原始 JSON；金额统一使用 `milli_yuan`。
+
+场次统计与导出只代表部署后 WebSocket 在线期间成功留存的受支持事件，不代表 Bilibili 平台全量历史。接口通过 `coverageStatus` 区分真实在线覆盖、无在线覆盖和仅历史边界；详细字段和导出说明见 [`docs/bilibili-live-session-data.md`](docs/bilibili-live-session-data.md)。
 
 ### Bilibili 直播榜单表
 
@@ -1366,6 +1377,10 @@ Bilibili 直播、弹幕、榜单：
 | `GET` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/ranks/summary` | 榜单摘要。 |
 | `GET` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/ranks/latest` | 最新榜单快照。 |
 | `POST` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/ranks/refresh` | 手动刷新榜单。 |
+| `GET` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/sessions` | 获取直播间最近场次。 |
+| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}` | 获取单场汇总和采集覆盖。 |
+| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/users` | 获取单场 Top 身份记录。 |
+| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/export?category=danmaku|gifts|users|all` | 下载单场 CSV 或完整 ZIP。 |
 
 Bilibili 登录态：
 
@@ -1410,6 +1425,7 @@ Subject 工作台：
 - 架构说明：[docs/architecture.md](docs/architecture.md)
 - 运行手册：[docs/runbook.md](docs/runbook.md)
 - 数据模型说明：[docs/data-model.md](docs/data-model.md)
+- 直播场次与导出说明：[docs/bilibili-live-session-data.md](docs/bilibili-live-session-data.md)
 - 项目约定：[social-data-monitor/docs/project-conventions.md](social-data-monitor/docs/project-conventions.md)
 
 ## 许可证

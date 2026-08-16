@@ -1,5 +1,7 @@
 package com.socialmonitor.bilibili.live.danmaku.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socialmonitor.bilibili.client.BilibiliFetchException;
 import com.socialmonitor.bilibili.client.BilibiliApiClient;
 import com.socialmonitor.bilibili.live.danmaku.client.BilibiliLiveDanmuInfoClient;
@@ -19,6 +21,7 @@ import com.socialmonitor.bilibili.live.domain.BilibiliLiveRoomMonitor;
 import com.socialmonitor.bilibili.live.repository.BilibiliLiveMonitorRepository;
 import com.socialmonitor.common.error.ErrorCode;
 import com.socialmonitor.common.exception.BusinessException;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
@@ -29,7 +32,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +45,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -55,6 +59,7 @@ public class BilibiliLiveDanmakuService {
     private static final ZoneOffset DISPLAY_OFFSET = ZoneOffset.ofHours(8);
     private static final Duration DANMU_NAME_CACHE_TTL = Duration.ofHours(12);
     private static final Duration DANMU_NAME_FAILURE_CACHE_TTL = Duration.ofMinutes(10);
+    private static final ObjectMapper AUTH_REPLY_MAPPER = new ObjectMapper();
 
     private final BilibiliLiveMonitorRepository liveRepository;
     private final BilibiliLiveDanmakuRepository danmakuRepository;
@@ -63,6 +68,7 @@ public class BilibiliLiveDanmakuService {
     private final BilibiliLiveDanmakuProperties properties;
     private final BilibiliLiveDanmakuPacketCodec packetCodec;
     private final BilibiliLiveDanmakuEventParser eventParser;
+    private final BilibiliLiveEventIngestionService eventIngestionService;
     private final HttpClient httpClient;
     private final ScheduledExecutorService heartbeatExecutor;
     private final ConcurrentMap<Long, ConnectionHandle> connections = new ConcurrentHashMap<>();
@@ -75,7 +81,8 @@ public class BilibiliLiveDanmakuService {
             BilibiliLiveDanmuInfoClient danmuInfoClient,
             BilibiliLiveDanmakuProperties properties,
             BilibiliLiveDanmakuPacketCodec packetCodec,
-            BilibiliLiveDanmakuEventParser eventParser
+            BilibiliLiveDanmakuEventParser eventParser,
+            BilibiliLiveEventIngestionService eventIngestionService
     ) {
         this.liveRepository = liveRepository;
         this.danmakuRepository = danmakuRepository;
@@ -84,6 +91,7 @@ public class BilibiliLiveDanmakuService {
         this.properties = properties;
         this.packetCodec = packetCodec;
         this.eventParser = eventParser;
+        this.eventIngestionService = eventIngestionService;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(Math.max(1000, properties.getConnectTimeoutMs())))
                 .build();
@@ -144,8 +152,7 @@ public class BilibiliLiveDanmakuService {
             URI uri = URI.create(host.defaultWssUri());
             session = danmakuRepository.createSession(room.id(), room.roomId(), uri.toString());
             ConnectionHandle handle = new ConnectionHandle(
-                    room.id(),
-                    room.roomId(),
+                    room,
                     session.id(),
                     uri.toString(),
                     autoManaged,
@@ -234,8 +241,30 @@ public class BilibiliLiveDanmakuService {
         if (!properties.isEnabled() || !properties.isAutoStartEnabled()) {
             return;
         }
-        Set<Long> desired = new HashSet<>(danmakuRepository.findAutoStartRoomMonitorIds());
-        desired.forEach(roomMonitorId -> {
+        List<Long> desiredInPriorityOrder = danmakuRepository.findAutoStartRoomMonitorIds();
+        long manualConnectionCount = connections.values().stream()
+                .filter(handle -> !handle.autoManaged)
+                .count();
+        long autoCapacity = Math.max(0L, (long) Math.max(1, properties.getMaxConnections()) - manualConnectionCount);
+        Set<Long> targetAutoManaged = new LinkedHashSet<>();
+        for (Long roomMonitorId : desiredInPriorityOrder) {
+            ConnectionHandle existing = connections.get(roomMonitorId);
+            if (existing != null && !existing.autoManaged) {
+                continue;
+            }
+            if (targetAutoManaged.size() >= autoCapacity) {
+                break;
+            }
+            targetAutoManaged.add(roomMonitorId);
+        }
+        connections.entrySet().stream()
+                .filter(entry -> entry.getValue().autoManaged && !targetAutoManaged.contains(entry.getKey()))
+                .map(Map.Entry::getKey)
+                .toList()
+                .forEach(this::stop);
+        desiredInPriorityOrder.stream()
+                .filter(targetAutoManaged::contains)
+                .forEach(roomMonitorId -> {
             if (!connections.containsKey(roomMonitorId)) {
                 try {
                     startInternal(roomMonitorId, true, null);
@@ -245,11 +274,11 @@ public class BilibiliLiveDanmakuService {
                 }
             }
         });
-        connections.entrySet().stream()
-                .filter(entry -> entry.getValue().autoManaged && !desired.contains(entry.getKey()))
-                .map(Map.Entry::getKey)
-                .toList()
-                .forEach(this::stop);
+    }
+
+    @PostConstruct
+    public void recoverOrphanedTransportSessions() {
+        danmakuRepository.markOrphanedSessionsInterrupted();
     }
 
     @PreDestroy
@@ -287,8 +316,12 @@ public class BilibiliLiveDanmakuService {
 
     private void handlePacket(ConnectionHandle handle, BilibiliLiveDanmakuPacketCodec.ParsedPacket packet) {
         if (packet.operation() == BilibiliLiveDanmakuPacketCodec.OP_AUTH_REPLY) {
-            handle.status = "CONNECTED";
-            danmakuRepository.markSessionStatus(handle.sessionId, "CONNECTED");
+            if (isSuccessfulAuthReply(packet.bodyText())) {
+                handle.status = "CONNECTED";
+                danmakuRepository.markSessionConnected(handle.sessionId, OffsetDateTime.now(DISPLAY_OFFSET));
+            } else {
+                rejectAuthentication(handle);
+            }
             return;
         }
         if (packet.operation() == BilibiliLiveDanmakuPacketCodec.OP_HEARTBEAT_REPLY) {
@@ -321,32 +354,32 @@ public class BilibiliLiveDanmakuService {
     }
 
     private void applyEvent(ConnectionHandle handle, BilibiliLiveDanmakuEvent event) {
-        danmakuRepository.recordMetricEvent(
-                handle.monitorId,
+        ingestParsedEvent(
+                handle.room,
                 handle.sessionId,
-                handle.roomId,
-                event.occurredAt(),
-                properties.getBucketSeconds(),
-                event.danmu() ? 1 : 0,
-                event.likeCount(),
-                event.likeIncrement(),
-                event.watchedCount(),
-                null,
-                valueOrZero(event.giftCount()),
-                valueOrZero(event.superChatCount()),
-                1
+                handle.receiptOrdinal.incrementAndGet(),
+                handle.protocolVersion,
+                event
         );
-        if (event.danmu() && event.messageText() != null && !event.messageText().isBlank()) {
-            String displayName = resolveDanmuDisplayName(event);
-            danmakuRepository.insertRecent(
-                    handle.monitorId,
-                    handle.roomId,
-                    event.messageText(),
-                    displayName,
-                    event.medalName(),
-                    event.occurredAt()
+    }
+
+    void ingestParsedEvent(
+            BilibiliLiveRoomMonitor room,
+            Long connectionSessionId,
+            long receiptOrdinal,
+            Integer protocolVersion,
+            BilibiliLiveDanmakuEvent event
+    ) {
+        String displayName = event.isDanmaku() ? resolveDanmuDisplayName(event) : event.displayName();
+        try {
+            eventIngestionService.ingest(
+                    room, connectionSessionId, receiptOrdinal, protocolVersion, event, displayName
             );
-            danmakuRepository.trimRecent(handle.monitorId, Math.max(20, properties.getRecentMessageLimitPerRoom()));
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Bilibili live event persistence failed; collection will continue. monitorId={}, roomId={}, command={}, errorType={}",
+                    room.id(), room.roomId(), event.command(), exception.getClass().getSimpleName()
+            );
         }
     }
 
@@ -365,6 +398,29 @@ public class BilibiliLiveDanmakuService {
                 handle.monitorId, handle.roomId, throwable.getMessage());
     }
 
+    private boolean isSuccessfulAuthReply(String bodyText) {
+        if (bodyText == null || bodyText.isBlank()) {
+            return false;
+        }
+        try {
+            JsonNode code = AUTH_REPLY_MAPPER.readTree(bodyText).path("code");
+            return code.isIntegralNumber() && code.bigIntegerValue().signum() == 0;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void rejectAuthentication(ConnectionHandle handle) {
+        markError(handle, new IllegalStateException("Bilibili danmaku authentication failed."));
+        if (handle.webSocket != null) {
+            try {
+                handle.webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "authentication failed");
+            } catch (RuntimeException ignored) {
+                // The session is already marked ERROR and removed from desired connections.
+            }
+        }
+    }
+
     private BilibiliLiveDanmakuStatusView toStatusView(
             Long roomMonitorId,
             Long roomId,
@@ -373,9 +429,12 @@ public class BilibiliLiveDanmakuService {
             BilibiliLiveDanmakuStats stats
     ) {
         boolean running = handle != null && handle.isActive();
+        boolean orphanedTransport = !running
+                && latest != null
+                && isNonTerminalTransportStatus(latest.status());
         String status = running
                 ? handle.status
-                : latest == null ? "NOT_STARTED" : latest.status();
+                : orphanedTransport ? "ERROR" : latest == null ? "NOT_STARTED" : latest.status();
         Long sessionId = running ? handle.sessionId : latest == null ? null : latest.id();
         String host = running ? handle.connectHost : latest == null ? null : latest.connectHost();
         OffsetDateTime startedAt = running
@@ -387,8 +446,14 @@ public class BilibiliLiveDanmakuService {
         OffsetDateTime errorAt = running
                 ? null
                 : latest == null ? null : latest.lastErrorAt();
-        String errorType = running ? handle.lastErrorType : latest == null ? null : latest.lastErrorType();
-        String errorMessage = running ? handle.lastErrorMessage : latest == null ? null : latest.lastErrorMessage();
+        String errorType = running
+                ? handle.lastErrorType
+                : orphanedTransport ? "PROCESS_RESTART" : latest == null ? null : latest.lastErrorType();
+        String errorMessage = running
+                ? handle.lastErrorMessage
+                : orphanedTransport
+                ? "Persisted transport has no active in-process WebSocket."
+                : latest == null ? null : latest.lastErrorMessage();
         return new BilibiliLiveDanmakuStatusView(
                 roomMonitorId,
                 roomId == null && latest != null ? latest.roomId() : roomId,
@@ -411,6 +476,12 @@ public class BilibiliLiveDanmakuService {
                 errorType,
                 errorMessage
         );
+    }
+
+    private boolean isNonTerminalTransportStatus(String status) {
+        return "CONNECTING".equals(status)
+                || "AUTHENTICATING".equals(status)
+                || "CONNECTED".equals(status);
     }
 
     private BilibiliLiveDanmakuRecentView toRecentView(BilibiliLiveDanmakuRecent recent) {
@@ -459,10 +530,6 @@ public class BilibiliLiveDanmakuService {
     private BilibiliLiveRoomMonitor requireRoom(Long roomMonitorId) {
         return liveRepository.findById(roomMonitorId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "Bilibili live room monitor not found: " + roomMonitorId));
-    }
-
-    private int valueOrZero(Integer value) {
-        return value == null ? 0 : value;
     }
 
     private String resolveDanmuDisplayName(BilibiliLiveDanmakuEvent event) {
@@ -587,7 +654,7 @@ public class BilibiliLiveDanmakuService {
             }
             if (handle.closeRequested) {
                 danmakuRepository.markSessionStatus(handle.sessionId, "STOPPED");
-            } else {
+            } else if (!"ERROR".equals(handle.status)) {
                 handle.status = "CLOSED";
                 danmakuRepository.markSessionStatus(handle.sessionId, "CLOSED");
             }
@@ -605,6 +672,7 @@ public class BilibiliLiveDanmakuService {
 
     private static final class ConnectionHandle {
 
+        private final BilibiliLiveRoomMonitor room;
         private final Long monitorId;
         private final Long roomId;
         private final Long sessionId;
@@ -613,6 +681,7 @@ public class BilibiliLiveDanmakuService {
         private final int protocolVersion;
         private final String authMode;
         private final Long authUid;
+        private final AtomicLong receiptOrdinal = new AtomicLong();
         private final OffsetDateTime startedAt = OffsetDateTime.now(DISPLAY_OFFSET);
         private volatile WebSocket webSocket;
         private volatile ScheduledFuture<?> heartbeatFuture;
@@ -622,8 +691,7 @@ public class BilibiliLiveDanmakuService {
         private volatile String lastErrorMessage;
 
         private ConnectionHandle(
-                Long monitorId,
-                Long roomId,
+                BilibiliLiveRoomMonitor room,
                 Long sessionId,
                 String connectHost,
                 boolean autoManaged,
@@ -631,8 +699,9 @@ public class BilibiliLiveDanmakuService {
                 String authMode,
                 Long authUid
         ) {
-            this.monitorId = monitorId;
-            this.roomId = roomId;
+            this.room = room;
+            this.monitorId = room.id();
+            this.roomId = room.roomId();
             this.sessionId = sessionId;
             this.connectHost = connectHost;
             this.autoManaged = autoManaged;

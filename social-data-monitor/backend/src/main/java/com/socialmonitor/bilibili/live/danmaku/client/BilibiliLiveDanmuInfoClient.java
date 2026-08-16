@@ -8,6 +8,7 @@ import com.socialmonitor.bilibili.auth.repository.BilibiliCredentialRepository;
 import com.socialmonitor.bilibili.client.BilibiliFetchException;
 import com.socialmonitor.bilibili.live.config.BilibiliLiveMonitorProperties;
 import com.socialmonitor.bilibili.live.danmaku.config.BilibiliLiveDanmakuProperties;
+import com.socialmonitor.common.exception.BusinessException;
 import com.socialmonitor.platform.enums.FetchErrorType;
 import com.socialmonitor.platform.enums.RiskLevel;
 import java.time.Duration;
@@ -230,10 +231,16 @@ public class BilibiliLiveDanmuInfoClient {
         if (repository == null) {
             return Optional.empty();
         }
-        return repository.findActive()
-                .filter(credential -> "ACTIVE".equalsIgnoreCase(credential.status()))
-                .map(PersistedBilibiliCredential::state)
-                .flatMap(this::toLoginCredential);
+        try {
+            return repository.findActive()
+                    .filter(credential -> "ACTIVE".equalsIgnoreCase(credential.status()))
+                    .map(PersistedBilibiliCredential::state)
+                    .flatMap(this::toLoginCredential);
+        } catch (BusinessException exception) {
+            log.warn("Stored Bilibili login credential is unavailable; getDanmuInfo will use anonymous mode. errorCode={}",
+                    exception.getErrorCode());
+            return Optional.empty();
+        }
     }
 
     private Optional<RequestCredential> toLoginCredential(BilibiliCookieState state) {

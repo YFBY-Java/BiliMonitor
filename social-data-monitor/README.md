@@ -34,7 +34,7 @@ http://127.0.0.1:5173/douyin
 ```
 
 - `/bilibili`：B站用户粉丝数趋势监控。
-- `/bilibili/live`：B站直播间监控和直播弹幕监控。
+- `/bilibili/live`：B站直播间、直播弹幕、直播场次统计和单场 CSV/ZIP 导出。
 - `/subjects`：指定用户监控对象列表。
 - `/subjects/{subjectId}`：指定用户聚合工作台，合并展示粉丝数、直播热度、弹幕速率和采集健康。
 - `/douyin`：用本人抖音扫码，保存、校验、查看、复制、导出或撤销完整登录态。
@@ -363,9 +363,13 @@ backend/src/main/resources/db/migration/V3__bilibili_interval_range.sql
 backend/src/main/resources/db/migration/V4__bilibili_live_monitor.sql
 backend/src/main/resources/db/migration/V5__subject_monitor.sql
 backend/src/main/resources/db/migration/V6__bilibili_live_danmaku_monitor.sql
+backend/src/main/resources/db/migration/V7__bilibili_auth_credential.sql
+backend/src/main/resources/db/migration/V8__bilibili_live_rank_monitor.sql
+backend/src/main/resources/db/migration/V9__douyin_auth_credential.sql
+backend/src/main/resources/db/migration/V10__bilibili_live_session.sql
 ```
 
-其中 `V5` 新增指定用户聚合层相关表，`V6` 新增直播弹幕监控会话、指标桶和最近弹幕表。不要手工改生产数据库结构，后续变更继续新增 Flyway migration。
+其中 `V5` 新增指定用户聚合层，`V6` 新增直播弹幕连接/指标/最近弹幕，`V7` 保存 B站扫码登录态索引，`V8` 保存直播榜单，`V9` 保存抖音登录态，`V10` 新增直播场次、受支持事件和单场导出所需数据。场次统计只代表 WebSocket 在线期间成功解析并持久化的受支持事件，详细口径和 API 见 [B站直播场次、事件留存与导出](../docs/bilibili-live-session-data.md)。不要手工改生产数据库结构，后续变更继续新增 Flyway migration。
 
 ## 验证命令
 

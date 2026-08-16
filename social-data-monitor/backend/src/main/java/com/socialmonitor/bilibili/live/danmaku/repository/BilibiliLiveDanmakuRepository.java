@@ -51,6 +51,15 @@ public class BilibiliLiveDanmakuRepository {
         jdbcTemplate.update(sql, Map.of("sessionId", sessionId, "status", status));
     }
 
+    public void markSessionConnected(Long sessionId, OffsetDateTime connectedAt) {
+        jdbcTemplate.update("""
+                UPDATE bilibili_live_danmaku_session SET
+                    status = 'CONNECTED',
+                    connected_at = COALESCE(connected_at, :connectedAt)
+                WHERE id = :sessionId
+                """, Map.of("sessionId", sessionId, "connectedAt", connectedAt));
+    }
+
     public void markSessionHeartbeat(Long sessionId) {
         jdbcTemplate.update("""
                 UPDATE bilibili_live_danmaku_session SET
@@ -86,16 +95,41 @@ public class BilibiliLiveDanmakuRepository {
         return jdbcTemplate.query(sql, Map.of("monitorId", monitorId), this::mapSession).stream().findFirst();
     }
 
+    public void markOrphanedSessionsInterrupted() {
+        jdbcTemplate.update("""
+                UPDATE bilibili_live_danmaku_session SET
+                    status = 'ERROR',
+                    ended_at = COALESCE(ended_at, GREATEST(
+                        COALESCE(last_heartbeat_at, connected_at, started_at),
+                        COALESCE(connected_at, started_at)
+                    )),
+                    last_error_at = now(),
+                    last_error_type = 'PROCESS_RESTART',
+                    last_error_message = 'Connection did not survive process restart.'
+                WHERE status IN ('CONNECTING', 'AUTHENTICATING', 'CONNECTED')
+                """, Map.of());
+    }
+
     public List<Long> findAutoStartRoomMonitorIds() {
         String sql = """
-                SELECT DISTINCT binding.bilibili_live_room_monitor_id
-                FROM subject_bilibili_binding binding
-                JOIN bilibili_live_room_monitor room
-                  ON room.id = binding.bilibili_live_room_monitor_id
-                WHERE binding.danmu_enabled = true
-                  AND binding.bilibili_live_room_monitor_id IS NOT NULL
-                  AND room.monitor_status = 'ACTIVE'
-                ORDER BY binding.bilibili_live_room_monitor_id ASC
+                SELECT desired.monitor_id
+                FROM (
+                    SELECT
+                        binding.bilibili_live_room_monitor_id AS monitor_id,
+                        CASE WHEN room.live_status = 1 THEN 0 ELSE 1 END AS live_priority
+                    FROM subject_bilibili_binding binding
+                    JOIN bilibili_live_room_monitor room
+                      ON room.id = binding.bilibili_live_room_monitor_id
+                    WHERE binding.danmu_enabled = true
+                      AND binding.bilibili_live_room_monitor_id IS NOT NULL
+                      AND room.monitor_status = 'ACTIVE'
+                    UNION
+                    SELECT room.id AS monitor_id, 0 AS live_priority
+                    FROM bilibili_live_room_monitor room
+                    WHERE room.monitor_status = 'ACTIVE'
+                      AND room.live_status = 1
+                ) desired
+                ORDER BY desired.live_priority ASC, desired.monitor_id ASC
                 """;
         return jdbcTemplate.queryForList(sql, Map.of(), Long.class);
     }

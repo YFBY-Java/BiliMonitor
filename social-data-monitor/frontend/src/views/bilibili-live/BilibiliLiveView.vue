@@ -294,6 +294,7 @@
               </div>
 
             </div>
+            <BilibiliLiveSessionPanel :monitor-id="expandedRoom.id" :room-name="expandedRoom.uname" />
           </article>
         </Transition>
       </section>
@@ -502,6 +503,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { Check, Delete, Link as LinkIcon, Moon, Plus, Refresh, Sunny, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TrendChart from '@/components/charts/TrendChart.vue'
+import BilibiliLiveSessionPanel from '@/views/bilibili-live/components/BilibiliLiveSessionPanel.vue'
 import {
   addBilibiliLiveRoom,
   deleteBilibiliLiveRoom,
