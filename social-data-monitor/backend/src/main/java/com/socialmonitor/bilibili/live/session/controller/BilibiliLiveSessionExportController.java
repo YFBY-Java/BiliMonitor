@@ -48,14 +48,19 @@ public class BilibiliLiveSessionExportController {
     ) {
         if (category == BilibiliLiveSessionExportCategory.ALL) {
             response.setContentType("application/zip");
+        } else if (category == BilibiliLiveSessionExportCategory.XLSX) {
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         } else {
             response.setContentType("text/csv");
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         }
+        String filename = category == BilibiliLiveSessionExportCategory.XLSX
+                ? "bilibili-live-session-" + summary.id() + ".xlsx"
+                : "bilibili-live-session-" + summary.id() + "-"
+                        + category.wireValue() + "." + category.extension();
         response.setHeader(
                 HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=\"bilibili-live-session-" + summary.id() + "-"
-                        + category.wireValue() + "." + category.extension() + "\""
+                "attachment; filename=\"" + filename + "\""
         );
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         response.setHeader("X-Content-Type-Options", "nosniff");

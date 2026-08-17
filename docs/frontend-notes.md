@@ -1,6 +1,6 @@
 # 前端页面与交互说明
 
-最后更新：2026-08-16
+最后更新：2026-08-17
 
 ## 技术栈
 
@@ -108,7 +108,7 @@ Subject 用户监控 API：
 - 每张小卡片有独立“趋势”选择按钮，最多 4 个直播间进入趋势图，避免点击卡片时误选趋势。
 - 详情区展示更完整的直播间资料和操作按钮。
 - 趋势图支持选择、取消选择和拖动交换顺序。
-- [`BilibiliLiveSessionPanel.vue`](../social-data-monitor/frontend/src/views/bilibili-live/components/BilibiliLiveSessionPanel.vue) 展示场次边界、覆盖状态、统计、Top 身份记录和 CSV/ZIP 导出。
+- [`BilibiliLiveSessionPanel.vue`](../social-data-monitor/frontend/src/views/bilibili-live/components/BilibiliLiveSessionPanel.vue) 展示场次边界、覆盖状态、统计、Top 身份记录和 XLSX/CSV/ZIP 导出；默认每 10 秒刷新，可设置 `1`～`3600` 秒并立即刷新，刷新时尽量保留当前选择。
 
 当前设计重点：
 
@@ -159,7 +159,7 @@ Subject 用户监控 API：
 - `BilibiliFollowerLiveHeatWidget.vue` 当前图表高度为 `390px`，轴范围按当前数据动态计算，小幅变化会更明显。
 - `BilibiliLiveDanmuWidget.vue` 是右侧复合卡片：默认弹幕视图每 2 秒轮询弹幕状态和最近弹幕；切到房间观众/大航海时调用 `frontend/src/api/bilibiliLive.ts` 中的 `fetchBilibiliLiveRankSummary` 和 `refreshBilibiliLiveRanks`。
 - 弹幕列表在鼠标未悬停于“直播间弹幕监控”区域时自动跟随最新弹幕；鼠标悬停任意内容区域时暂停自动下滑，移出后恢复并滚到最新。
-- 旧弹幕如果只保存脱敏昵称，前端显示“昵称待补全”；新弹幕由后端优先通过已保存登录态获取完整昵称，失败时回退游客态。
+- 弹幕发送者列固定为 `220px`，单行展示“昵称 · UID”，完整值可悬停查看；旧弹幕如果只保存脱敏昵称且没有 UID，前端继续展示当时值，新弹幕由后端优先通过已保存登录态获取完整昵称和 UID，失败时回退游客态。
 - 2026-06-19 使用系统 Chrome headless 检查过 `/subjects/7`，右侧三视图切换控件和默认弹幕视图没有空白或明显错位。
 
 ## 图表组件

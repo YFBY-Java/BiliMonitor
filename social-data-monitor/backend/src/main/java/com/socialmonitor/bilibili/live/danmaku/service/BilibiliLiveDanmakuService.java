@@ -276,6 +276,41 @@ public class BilibiliLiveDanmakuService {
         });
     }
 
+    public void reconnectAnonymousConnectionsAsync() {
+        if (heartbeatExecutor.isShutdown()) {
+            return;
+        }
+        heartbeatExecutor.execute(() -> {
+            try {
+                reconnectAnonymousConnections();
+            } catch (RuntimeException exception) {
+                log.warn("Unable to upgrade anonymous Bilibili danmaku connections after login: {}",
+                        exception.getMessage());
+            }
+        });
+    }
+
+    synchronized void reconnectAnonymousConnections() {
+        List<ConnectionRestart> candidates = connections.values().stream()
+                .filter(ConnectionHandle::isActive)
+                .filter(handle -> "ANONYMOUS".equalsIgnoreCase(handle.authMode))
+                .map(handle -> new ConnectionRestart(
+                        handle.monitorId,
+                        handle.autoManaged,
+                        handle.protocolVersion
+                ))
+                .toList();
+        for (ConnectionRestart candidate : candidates) {
+            stop(candidate.monitorId());
+            try {
+                startInternal(candidate.monitorId(), candidate.autoManaged(), candidate.protocolVersion());
+            } catch (BusinessException exception) {
+                log.warn("Failed to upgrade Bilibili danmaku connection after login. monitorId={}, message={}",
+                        candidate.monitorId(), exception.getMessage());
+            }
+        }
+    }
+
     @PostConstruct
     public void recoverOrphanedTransportSessions() {
         danmakuRepository.markOrphanedSessionsInterrupted();
@@ -487,6 +522,7 @@ public class BilibiliLiveDanmakuService {
     private BilibiliLiveDanmakuRecentView toRecentView(BilibiliLiveDanmakuRecent recent) {
         return new BilibiliLiveDanmakuRecentView(
                 recent.messageText(),
+                recent.senderUid(),
                 recent.displayName(),
                 recent.medalName(),
                 recent.sentAt()
@@ -716,5 +752,8 @@ public class BilibiliLiveDanmakuService {
     }
 
     private record CachedDanmuName(String name, OffsetDateTime expiresAt) {
+    }
+
+    private record ConnectionRestart(Long monitorId, boolean autoManaged, int protocolVersion) {
     }
 }

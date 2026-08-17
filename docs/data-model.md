@@ -1,6 +1,6 @@
 # 数据模型与存储说明
 
-最后更新：2026-08-16
+最后更新：2026-08-17
 
 ## 迁移文件
 
@@ -18,6 +18,7 @@
 | [`V8__bilibili_live_rank_monitor.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V8__bilibili_live_rank_monitor.sql) | 新增直播房间观众、大航海榜单快照和榜单明细表。 |
 | [`V9__douyin_auth_credential.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V9__douyin_auth_credential.sql) | 新增抖音 OAuth/Web 登录态会话和凭据存储。 |
 | [`V10__bilibili_live_session.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql) | 新增 B站直播场次、场次事件，并为弹幕传输会话增加真实连接时间。 |
+| [`V11__bilibili_live_danmaku_recent_sender_uid.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V11__bilibili_live_danmaku_recent_sender_uid.sql) | 为最近弹幕增加可空发送者 UID 和查询索引。 |
 
 ## B站监控用户表
 
@@ -297,6 +298,7 @@
 | --- | --- |
 | `live_room_monitor_id` | 关联直播间监控。 |
 | `room_id` | 直播间房间号。 |
+| `sender_uid` | 可空发送者 UID；仅保存正 UID。V11 之前的历史行保持为空，不猜测回填。 |
 | `started_at` / `ended_at` | 连接开始和结束时间。 |
 | `connected_at` | WebSocket 鉴权成功并真正进入在线状态的时间；场次覆盖区间从这里开始。 |
 | `status` | `CONNECTING`、`AUTHENTICATING`、`CONNECTED`、`STOPPED`、`CLOSED`、`ERROR` 等。 |
@@ -349,7 +351,7 @@
 保留策略：
 
 - `BilibiliLiveDanmakuRepository.trimRecent` 按配置保留最近 N 条，默认来自 `SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_RECENT_LIMIT=200`。
-- 旧历史弹幕如果入库时没有 UID 或完整昵称，后续无法保证恢复，只能继续展示当时保存的 `display_name`。
+- 旧历史弹幕如果入库时没有 UID 或完整昵称，后续无法保证恢复，只能继续展示当时保存的 `display_name`；扫码登录成功只会升级活动连接，不改写历史行。
 
 ## B站直播场次表
 

@@ -17,6 +17,7 @@ import com.socialmonitor.bilibili.auth.dto.BilibiliCookieView;
 import com.socialmonitor.bilibili.auth.dto.BilibiliCredentialFullView;
 import com.socialmonitor.bilibili.auth.dto.QrLoginStartView;
 import com.socialmonitor.bilibili.auth.dto.QrLoginStatusView;
+import com.socialmonitor.bilibili.auth.event.BilibiliCredentialActivatedEvent;
 import com.socialmonitor.bilibili.auth.repository.BilibiliCredentialRepository;
 import com.socialmonitor.common.error.ErrorCode;
 import com.socialmonitor.common.exception.BusinessException;
@@ -28,6 +29,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,17 +43,20 @@ public class BilibiliAuthService {
     private final BilibiliPassportClient passportClient;
     private final BilibiliQrLoginSessionStore sessionStore;
     private final BilibiliCredentialRepository credentialRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public BilibiliAuthService(
             BilibiliAuthProperties properties,
             BilibiliPassportClient passportClient,
             BilibiliQrLoginSessionStore sessionStore,
-            BilibiliCredentialRepository credentialRepository
+            BilibiliCredentialRepository credentialRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.properties = properties;
         this.passportClient = passportClient;
         this.sessionStore = sessionStore;
         this.credentialRepository = credentialRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public QrLoginStartView startQrLogin() {
@@ -174,6 +179,7 @@ public class BilibiliAuthService {
                 nav.rawPayload()
         );
         PersistedBilibiliCredential credential = credentialRepository.saveActive(state);
+        eventPublisher.publishEvent(new BilibiliCredentialActivatedEvent(credential.credentialId()));
         QrLoginStatusView success = new QrLoginStatusView(
                 "SUCCESS",
                 "Bilibili 登录态已保存",

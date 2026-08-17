@@ -11,6 +11,12 @@ function cssRule(selector: string): string {
 }
 
 describe('Bilibili live session identity row layout', () => {
+  it('offers a native Excel workbook export without removing CSV and ZIP actions', () => {
+    expect(panelSource).toContain("{ category: 'xlsx', label: 'Excel XLSX' }")
+    expect(panelSource).toContain("{ category: 'danmaku', label: '弹幕 CSV' }")
+    expect(panelSource).toContain("{ category: 'all', label: '全部 ZIP' }")
+  })
+
   it('uses fixed aligned columns with extra room for nickname and amount', () => {
     expect(panelSource).toContain(
       'grid-template-columns: 28px 300px 160px minmax(240px, 1fr) 132px;'

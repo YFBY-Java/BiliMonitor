@@ -1,6 +1,6 @@
 # 当前功能状态
 
-最后更新：2026-08-16
+最后更新：2026-08-17
 
 ## 已实现
 
@@ -54,8 +54,9 @@
 - 直播间详情区已接入“房间观众与大航海”榜单，支持房间观众在线榜、进房、日榜、周榜、月榜，以及大航海周榜、月榜、陪伴榜。
 - 直播榜单支持手动刷新快照，保存到 `bilibili_live_rank_snapshot` 和 `bilibili_live_rank_entry`，避免每次页面切换都重新打外部接口。
 - 直播页支持按场次查看 `OPEN`、`END_PENDING`、`CLOSED`、`INCOMPLETE` 边界、WebSocket 在线覆盖、弹幕/礼物/付费统计和 Top 身份记录。
+- 场次面板默认每 10 秒刷新，允许在页面设置 `1`～`3600` 秒，并提供立即刷新按钮；自动刷新保留仍存在的当前选择。
 - WebSocket 在线期间成功解析并持久化的受支持事件保存到 `bilibili_live_session_event`；强上游 ID 去重，无强 ID 的真实接收逐条保留。
-- 单场支持弹幕 CSV、礼物 CSV、用户 CSV 和带 manifest/summary 的完整 ZIP 导出。
+- 单场支持原生 Excel XLSX、弹幕 CSV、礼物 CSV、用户 CSV 和带 manifest/summary 的完整 ZIP 导出；XLSX 的长 UID 按文本单元格保存。
 - 身份人数只统计正 UID；UID 缺失的互动、送礼和付费单独显示未解析事件数，不按昵称猜测或合并人数。
 - 消费金额统一使用 `milli_yuan`，免费/银瓜子礼物不会混入人民币单价。
 - 浅色/深色主题切换，主题状态保存在 `localStorage`。
@@ -76,6 +77,7 @@
 - 场次查询/导出：[`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/)
 - 事件摄取：[`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java)
 - 场次数据迁移：[`../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql)
+- 最近弹幕 UID 迁移：[`../social-data-monitor/backend/src/main/resources/db/migration/V11__bilibili_live_danmaku_recent_sender_uid.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V11__bilibili_live_danmaku_recent_sender_uid.sql)
 - 前端页面：[`../social-data-monitor/frontend/src/views/bilibili-live/BilibiliLiveView.vue`](../social-data-monitor/frontend/src/views/bilibili-live/BilibiliLiveView.vue)
 - 前端 API：[`../social-data-monitor/frontend/src/api/bilibiliLive.ts`](../social-data-monitor/frontend/src/api/bilibiliLive.ts)
 
@@ -105,6 +107,7 @@
 - 登录态字段按当前项目约定完整返回和展示，不做脱敏、截断或 hash。
 - 后端重启后可以从数据库恢复凭据，并重新通过 Bilibili `nav` 校验。
 - 直播弹幕模块会在配置允许时复用该登录态调用 `getDanmuInfo`，并在 WebSocket 鉴权包中使用同一账号 mid；这能减少游客态昵称脱敏问题。
+- 登录成功保存凭据后，当前活动的游客态弹幕连接会异步重连并升级为登录态，不需要手动停止再启动。
 
 核心代码：
 
@@ -148,6 +151,7 @@
 - 弹幕信息流优先使用已保存 B站登录态获取 token 和认证 WebSocket，状态 API 会返回 `authMode`、`authUid` 便于确认当前是 `LOGIN` 还是 `ANONYMOUS`。
 - 登录态不可用、过期或触发 B站风控时，弹幕模块自动回退到游客态，不做验证码或复杂风控绕过。
 - 弹幕消息保存最近消息和分钟级指标桶。
+- 最近弹幕保存可用的正 UID；前端固定宽度单行展示“昵称 · UID”，完整值可悬停查看。
 - 弹幕昵称不做项目侧脱敏；如果 B站弹幕包只给 `***` 脱敏名且包内带 UID，后端会用公开用户卡片接口补全真实昵称，并做 12 小时缓存。
 - 老历史弹幕如果已经只保存脱敏名且没有 UID，前端显示“昵称待补全”，不会继续直接展示 `***`。
 - 弹幕列表在鼠标没有悬停于弹幕监控区域时自动滚到最新；鼠标悬停在弹幕监控卡片区域时暂停自动下滑，移出后恢复追最新。
@@ -228,8 +232,12 @@
   - 后端完整测试 `212` 项通过，`0` 失败、`0` 错误。
   - 前端完整测试 `24` 项通过，`npm run typecheck` 和 `npm run build` 通过。
   - 场次身份列表固定为排名、昵称、UID、统计、金额单行对齐；超长昵称/UID 保留悬停全文。
+- 2026-08-17 验证过登录后身份恢复、场次刷新和 XLSX 导出：
+  - 后端完整测试 `219` 项通过，`0` 失败、`0` 错误。
+  - 前端完整测试 `28` 项通过，`npm run typecheck` 和 `npm run build` 通过。
+  - 真实 session 17 导出为四工作表 XLSX，长 UID 确认为文本单元格；原 CSV 仍保持 UTF-8 BOM、CRLF 和固定列数。
 
-最近一次业务修改验证时间：2026-08-16。
+最近一次业务修改验证时间：2026-08-17。
 
 ## 已知限制和风险
 

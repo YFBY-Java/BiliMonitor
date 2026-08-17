@@ -1,6 +1,6 @@
 # 当前项目工程详细总结
 
-最后更新：2026-08-16
+最后更新：2026-08-17
 
 本文是 `.` 当前工程的一页式深度总结，面向“下次的我”和“下次接手的 Codex”。它不替代已有专题文档，而是把当前真实工程状态、运行入口、代码结构、核心链路、数据表、API、前端页面和已知风险串起来。
 
@@ -10,9 +10,9 @@
 - 技术栈是 Spring Boot 3.3.6 + PostgreSQL + Flyway + MyBatis-Plus，前端是 Vue 3 + Vite + TypeScript + Element Plus + ECharts。
 - 当前已完整落地三条 B站主线：
   - `/bilibili`：B站用户粉丝趋势监控。
-  - `/bilibili/live`：B站直播间监控、榜单、房间详情、直播弹幕、直播场次统计和 CSV/ZIP 导出。
+  - `/bilibili/live`：B站直播间监控、榜单、房间详情、直播弹幕、可配置自动刷新的直播场次统计和 XLSX/CSV/ZIP 导出。
   - `/subjects`、`/subjects/:subjectId`：指定用户聚合工作台，把同一 B站用户的粉丝、直播热度、弹幕、榜单和采集健康聚合展示。
-- B站扫码登录态已经接入 `/bilibili` 页面和 `/api/bilibili/auth/**`，可保存 Cookie、CSRF、refreshToken，弹幕 `getDanmuInfo` 会优先复用登录态，失败时回退游客态。
+- B站扫码登录态已经接入 `/bilibili` 页面和 `/api/bilibili/auth/**`，可保存 Cookie、CSRF、refreshToken；弹幕 `getDanmuInfo` 会优先复用登录态，失败时回退游客态，新登录成功后会异步升级已有活动游客连接。
 - 弹幕 WebSocket 支持 `protover=0/1/2/3`，自动模式候选顺序优先配置值、`3`、`2`、`1`、`0`。
 - 直播间榜单已支持房间观众和大航海数据，榜单刷新接口前端超时时间单独放宽到 120 秒。
 - 采集间隔配置范围大，粉丝和直播监控都支持最小 `1` 秒、最大 `2592000` 秒，但仍有全局请求间隔和失败退避。
@@ -175,6 +175,7 @@ social-data-monitor/backend/src/main/resources/db/migration/
 | `V8__bilibili_live_rank_monitor.sql` | 直播间房间观众和大航海榜单快照、榜单明细。 |
 | `V9__douyin_auth_credential.sql` | 抖音 OAuth/Web 登录态会话与凭据。 |
 | `V10__bilibili_live_session.sql` | B站直播场次、受支持事件和弹幕传输真实在线时间。 |
+| `V11__bilibili_live_danmaku_recent_sender_uid.sql` | 最近弹幕可空发送者 UID 和查询索引。 |
 
 关键业务表：
 
@@ -185,7 +186,7 @@ social-data-monitor/backend/src/main/resources/db/migration/
 - `bilibili_live_status_event`：开播、下播、标题变化等事件。
 - `bilibili_live_danmaku_session`：弹幕 WebSocket 会话。
 - `bilibili_live_danmaku_metric_bucket`：弹幕速率、点赞、看过人数、心跳人气等指标桶。
-- `bilibili_live_danmaku_recent`：最近弹幕。
+- `bilibili_live_danmaku_recent`：最近弹幕及可用的正发送者 UID；V11 前历史行保持空 UID。
 - `bilibili_live_session`：直播场次边界和状态。
 - `bilibili_live_session_event`：单场受支持事件、身份、礼物/付费和原始 JSON。
 - `bilibili_live_rank_snapshot`：房间观众、大航海榜单快照。
@@ -259,6 +260,7 @@ B站直播链路：
 - 自动模式会依次尝试配置值、`3`、`2`、`1`、`0`。
 - `DANMU_MSG`、`WATCHED_CHANGE`、`LIKE_INFO_V3_UPDATE`、`ROOM_REAL_TIME_MESSAGE_UPDATE`、礼物和醒目留言等会被解析为最近弹幕或指标桶。
 - 如果弹幕事件里有 UID，会尝试通过公开用户卡片接口补全昵称；没有 UID 的历史脱敏昵称无法可靠恢复。
+- 扫码凭据保存成功会发布激活事件，监听器异步重连仍处于 `ANONYMOUS` 的活动 WebSocket，使后续消息尽快使用 `LOGIN` 鉴权。
 
 直播榜单链路：
 
@@ -331,7 +333,7 @@ Subject 聚合链路：
 - `GET /api/bilibili/live-monitor/rooms/{roomMonitorId}/sessions?limit={n}`
 - `GET /api/bilibili/live-monitor/sessions/{sessionId}`
 - `GET /api/bilibili/live-monitor/sessions/{sessionId}/users?limit={n}`
-- `GET /api/bilibili/live-monitor/sessions/{sessionId}/export?category=danmaku|gifts|users|all`
+- `GET /api/bilibili/live-monitor/sessions/{sessionId}/export?category=xlsx|danmaku|gifts|users|all`
 
 直播榜单：
 
@@ -454,6 +456,7 @@ Subject：
 - `frontend/src/views/subjects/widgets/BilibiliLiveDanmuWidget.vue`
   - 可切换 `弹幕`、`房间观众`、`大航海` 三种数据视图。
   - 弹幕视图每 2 秒轮询状态和最近弹幕。
+  - 发送者列固定宽度单行展示昵称和 UID，完整值可悬停查看。
   - 鼠标悬停整个弹幕监控区域时暂停自动追最新，移出后恢复。
   - 支持手动开启未开播房间的弹幕监听。
   - 榜单视图复用直播榜单 summary/refresh API，不复制数据到 Subject 表。
@@ -498,7 +501,8 @@ Subject：
 - 榜单排序方式和升降序。
 - 榜单列表最多 100 条，内部可滚动。
 - 直播场次边界、WebSocket 在线覆盖、弹幕/礼物/付费、Top 身份记录和消费金额。
-- 单场弹幕 CSV、礼物 CSV、用户 CSV，以及含 manifest/summary 的完整 ZIP。
+- 场次面板默认每 10 秒刷新，可设置 `1`～`3600` 秒或立即刷新，并尽量保留当前场次选择。
+- 单场原生 XLSX、弹幕 CSV、礼物 CSV、用户 CSV，以及含 manifest/summary 的完整 ZIP；XLSX 长 UID 按文本保存。
 - 浅色/深色主题。
 
 注意：
@@ -647,7 +651,7 @@ Get-Content -Encoding UTF8 social-data-monitor/frontend/src/router/index.ts
 git status --short
 ```
 
-2026-08-16 已运行后端完整测试（212 项）、前端完整测试（24 项）、前端 typecheck 和生产构建，均通过。
+2026-08-17 已运行后端完整测试（219 项）、前端完整测试（28 项）、前端 typecheck 和生产构建，均通过；真实 session 17 的 XLSX 下载包含四个工作表，长 UID 为文本单元格。
 
 ## 已知风险和下次建议
 

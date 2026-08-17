@@ -8,6 +8,7 @@ public enum BilibiliLiveSessionExportCategory {
     DANMAKU("danmaku", "csv"),
     GIFTS("gifts", "csv"),
     USERS("users", "csv"),
+    XLSX("xlsx", "xlsx"),
     ALL("all", "zip");
 
     private final String wireValue;
@@ -32,7 +33,7 @@ public enum BilibiliLiveSessionExportCategory {
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.BAD_REQUEST,
-                        "category must be one of: danmaku, gifts, users, all"
+                        "category must be one of: danmaku, gifts, users, xlsx, all"
                 ));
     }
 }

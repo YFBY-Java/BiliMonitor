@@ -73,7 +73,7 @@
           class="danmu-list"
         >
           <div v-for="message in danmu.recentMessages" :key="`${message.sentAt}-${message.messageText}`" class="danmu-item">
-            <strong class="danmu-sender">{{ displaySenderName(message.displayName) }}</strong>
+            <strong class="danmu-sender" :title="formatDanmuSender(message)">{{ formatDanmuSender(message) }}</strong>
             <span class="danmu-text">{{ message.messageText }}</span>
             <em class="danmu-time">{{ formatRelativeTime(message.sentAt) }}</em>
           </div>
@@ -391,6 +391,11 @@ function normalizeDanmuStatus(status: string, running: boolean) {
 function displaySenderName(displayName?: string) {
   const normalized = displayName?.trim()
   return normalized || '游客'
+}
+
+function formatDanmuSender(message: { displayName?: string; senderUid?: number }) {
+  const name = displaySenderName(message.displayName)
+  return message.senderUid && message.senderUid > 0 ? `${name} · UID ${message.senderUid}` : name
 }
 
 function selectDisplayMode(mode: DisplayMode) {
@@ -990,7 +995,7 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   position: relative;
   display: grid;
-  grid-template-columns: minmax(86px, 116px) minmax(0, 1fr) max-content;
+  grid-template-columns: 220px minmax(0, 1fr) max-content;
   align-items: start;
   column-gap: 10px;
   width: 100%;
@@ -1030,10 +1035,13 @@ onBeforeUnmount(() => {
 }
 
 .danmu-sender {
+  overflow: hidden;
   color: #6f5062;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .danmu-text {

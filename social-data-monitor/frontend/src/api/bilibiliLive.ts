@@ -122,6 +122,7 @@ export interface BilibiliLiveDanmakuStatus {
 
 export interface BilibiliLiveDanmakuRecent {
   messageText: string
+  senderUid?: number
   displayName?: string
   medalName?: string
   sentAt: string

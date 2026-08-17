@@ -1,6 +1,6 @@
 # 运行指南
 
-最后更新：2026-08-16
+最后更新：2026-08-17
 
 本指南以 Windows PowerShell 为主，因为当前工作区运行在 `.`。
 
@@ -114,8 +114,9 @@ http://127.0.0.1:5173/bilibili
 
 3. 点击“扫码登录”，用 Bilibili 手机客户端扫码并确认。
 4. 成功后检查页面是否显示 Bilibili 头像、昵称和 UID。
-5. 点击“查看完整登录态”，确认能看到完整 Cookie、CSRF 和 `refreshToken`。
-6. 重启后端，再调用登录态状态接口确认仍然可校验。
+5. 如果已有弹幕连接处于 `ANONYMOUS`，等待状态自动切换为 `LOGIN`；登录成功会异步重连活动游客连接，不需要手动停开。
+6. 点击“查看完整登录态”，确认能看到完整 Cookie、CSRF 和 `refreshToken`。
+7. 重启后端，再调用登录态状态接口确认仍然可校验。
 
 相关 API：
 
@@ -224,11 +225,11 @@ app:
 | `SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_WEB_LOCATION` | `444.8` | 获取弹幕信息接口使用的 `web_location`。 |
 | `SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_CLIENT_VERSION` | `1.14.3` | WebSocket 鉴权包中的客户端版本。 |
 
-说明：弹幕模块默认优先使用已保存扫码登录态调用 `getDanmuInfo`，并在 WebSocket 鉴权包中写入同一账号 mid，从而减少游客态昵称脱敏。登录态不可用、过期或触发风控时会回退匿名公开信息流；系统不做验证码或复杂风控绕过。旧历史弹幕如果已经保存了脱敏昵称且没有 UID，无法可靠补全；新弹幕若包内带 UID，会尝试通过公开用户卡片接口补全昵称。
+说明：弹幕模块默认优先使用已保存扫码登录态调用 `getDanmuInfo`，并在 WebSocket 鉴权包中写入同一账号 mid，从而减少游客态昵称脱敏。扫码凭据保存成功后，活动的游客态连接会异步重连为登录态。登录态不可用、过期或触发风控时会回退匿名公开信息流；系统不做验证码或复杂风控绕过。旧历史弹幕如果已经保存了脱敏昵称且没有 UID，无法可靠补全；V11 起新弹幕会保存可用的正 UID，并在需要时尝试通过公开用户卡片接口补全昵称。
 
 ### 直播场次与导出检查
 
-后端启动时 Flyway 会自动应用 `V10__bilibili_live_session.sql`。直播页的场次面板不需要额外配置；它读取直播场次、WebSocket 在线覆盖和已持久化事件。
+后端启动时 Flyway 会自动应用 `V10__bilibili_live_session.sql` 和 `V11__bilibili_live_danmaku_recent_sender_uid.sql`。直播页的场次面板不需要额外配置；它读取直播场次、WebSocket 在线覆盖和已持久化事件，默认每 10 秒刷新，可在页面设置 `1`～`3600` 秒或点击“立即刷新”。
 
 ```powershell
 # 把占位符替换成实际 monitorId/sessionId
@@ -239,6 +240,10 @@ Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sess
 Invoke-WebRequest `
   'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/export?category=all' `
   -OutFile bilibili-live-session.zip
+
+Invoke-WebRequest `
+  'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/export?category=xlsx' `
+  -OutFile bilibili-live-session.xlsx
 ```
 
 排查统计或导出时：
@@ -246,7 +251,8 @@ Invoke-WebRequest `
 - 先看 `coverageStatus`。`BOUNDARY_ONLY` 和 `NO_ONLINE_COVERAGE` 不应被理解成平台真实零值。
 - 检查 `transportSessionCount`、`captureStartedAt`、`captureEndedAt` 是否存在合理的 WebSocket 在线区间。
 - 完整 ZIP 应包含 `manifest.json`、`summary.csv`、`danmaku.csv`、`gifts.csv`、`users.csv`。
-- CSV/ZIP 只覆盖部署后 WebSocket 在线期间成功解析并持久化的受支持事件，不代表平台全量历史。
+- XLSX 应包含“场次摘要”“弹幕”“礼物”“用户”四个工作表，响应类型为 `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`；长 UID 应保持文本。
+- XLSX/CSV/ZIP 只覆盖部署后 WebSocket 在线期间成功解析并持久化的受支持事件，不代表平台全量历史。
 - 详细字段、状态与金额口径见 [`bilibili-live-session-data.md`](bilibili-live-session-data.md)。
 
 ## 数据库
@@ -539,7 +545,7 @@ cd social-data-monitor\frontend
 npm run build
 ```
 
-近期功能实现和样式迭代已跑通过后端测试、前端类型检查和前端构建。2026-06-16 扫码登录首期实现后已执行 `.\mvnw.cmd test`、`npm run typecheck` 和 `npm run build`，并验证二维码生成、未扫码轮询、前端扫码弹窗、真实扫码保存登录态、数据库加密保存和后端重启后 `nav` 校验。2026-06-17 弹幕登录态复用实现后再次执行 `.\mvnw.cmd test`，并验证 `/danmaku/status` 返回 `authMode=LOGIN`；弹幕自动滚动交互修改后执行 `npm run typecheck`。下次改业务代码后应重新执行。
+2026-08-17 完整验证包括后端 219 个测试、前端 28 个测试、前端类型检查和生产构建，并使用真实场次检查 XLSX 四个工作表、长 UID 文本单元格及 CSV 固定列结构。每次修改业务代码后仍应重新执行上述命令，不能以历史结果替代当前验证。
 
 ## 启动后应检查的端口
 
@@ -594,4 +600,8 @@ Get-NetTCPConnection -LocalPort 5432 -State Listen
 
 ### 弹幕昵称显示“昵称待补全”
 
-这通常说明历史记录里只有 B站返回的脱敏昵称，且没有可用于回填的 UID。2026-06-17 后弹幕模块会优先使用已保存扫码登录态进入弹幕信息流，减少新弹幕昵称脱敏；如果登录态不可用或回退游客态，仍可能遇到脱敏。新弹幕包带 UID 时会尝试用公开用户卡片接口补全；已入库的旧脱敏记录无法保证恢复。
+这通常说明历史记录里只有 B站返回的脱敏昵称，且没有可用于回填的 UID。当前弹幕模块会优先使用已保存扫码登录态进入弹幕信息流，登录成功后也会主动升级活动游客连接；如果登录态不可用或回退游客态，仍可能遇到脱敏。V11 起新弹幕会保存可用 UID，并尝试用公开用户卡片接口补全昵称；已入库的旧脱敏记录无法保证恢复。
+
+### Excel 提示 CSV 上次打开时出现严重错误
+
+当前 CSV 使用 UTF-8 BOM、CRLF、固定列数和标准引号转义，仍出现该提示时通常与 Excel 上一次异常退出后的恢复状态有关。优先下载 `category=xlsx` 的原生工作簿；如果 XLSX 也出现相同启动提示，先结束残留 Excel 进程或使用 Office 的“打开并修复”，再重新下载文件。CSV/ZIP 保留用于跨工具交换和批处理。

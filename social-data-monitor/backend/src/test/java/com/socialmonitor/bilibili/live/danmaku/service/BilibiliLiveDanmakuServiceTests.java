@@ -225,6 +225,28 @@ class BilibiliLiveDanmakuServiceTests {
     }
 
     @Test
+    void reconnectsAnonymousConnectionsAfterLoginWithoutTouchingAuthenticatedConnections() throws Exception {
+        WebSocket anonymousSocket = mock(WebSocket.class);
+        Object anonymousHandle = connectionHandle(room(11L, 33L), anonymousSocket, true, "ANONYMOUS", 0L);
+        WebSocket authenticatedSocket = mock(WebSocket.class);
+        Object authenticatedHandle = connectionHandle(room(12L, 34L), authenticatedSocket, true, "LOGIN", 99L);
+        connections().put(11L, anonymousHandle);
+        connections().put(12L, authenticatedHandle);
+        when(liveRepository.findById(11L)).thenReturn(Optional.of(room(11L, 33L)));
+        when(legacyRepository.stats(any(), any())).thenReturn(new BilibiliLiveDanmakuStats(
+                0, 0, null, null, null, null, null, null
+        ));
+        when(danmuInfoClient.fetchDanmuInfo(33L)).thenThrow(new RuntimeException("stop after proving reconnect"));
+
+        service.reconnectAnonymousConnections();
+
+        verify(anonymousSocket).sendClose(WebSocket.NORMAL_CLOSURE, "stopped");
+        verify(authenticatedSocket, never()).sendClose(any(Integer.class), any());
+        verify(danmuInfoClient).fetchDanmuInfo(33L);
+        verify(danmuInfoClient, never()).fetchDanmuInfo(34L);
+    }
+
+    @Test
     void establishedAutoHandleIsRebuiltAfterOnError() throws Exception {
         WebSocket webSocket = mock(WebSocket.class);
         Object handle = connectionHandle(room(), webSocket);
@@ -365,6 +387,16 @@ class BilibiliLiveDanmakuServiceTests {
             WebSocket webSocket,
             boolean autoManaged
     ) throws Exception {
+        return connectionHandle(room, webSocket, autoManaged, "ANONYMOUS", 0L);
+    }
+
+    private Object connectionHandle(
+            BilibiliLiveRoomMonitor room,
+            WebSocket webSocket,
+            boolean autoManaged,
+            String authMode,
+            Long authUid
+    ) throws Exception {
         Class<?> handleType = java.util.Arrays.stream(BilibiliLiveDanmakuService.class.getDeclaredClasses())
                 .filter(type -> type.getSimpleName().equals("ConnectionHandle"))
                 .findFirst()
@@ -375,7 +407,7 @@ class BilibiliLiveDanmakuServiceTests {
         );
         constructor.setAccessible(true);
         Object handle = constructor.newInstance(
-                room, 71L, "wss://example.invalid/sub", autoManaged, 3, "ANONYMOUS", 0L
+                room, 71L, "wss://example.invalid/sub", autoManaged, 3, authMode, authUid
         );
         if (webSocket != null) {
             Field field = handleType.getDeclaredField("webSocket");

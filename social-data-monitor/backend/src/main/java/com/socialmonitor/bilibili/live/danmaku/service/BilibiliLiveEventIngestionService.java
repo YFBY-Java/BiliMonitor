@@ -103,6 +103,7 @@ public class BilibiliLiveEventIngestionService {
             legacyRepository.insertRecent(
                     room.id(),
                     room.roomId(),
+                    event.senderUid(),
                     event.messageText(),
                     hasText(resolvedDisplayName) ? resolvedDisplayName : event.displayName(),
                     event.medalName(),

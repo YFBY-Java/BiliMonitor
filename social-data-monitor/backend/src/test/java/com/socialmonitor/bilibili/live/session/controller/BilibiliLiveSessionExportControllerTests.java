@@ -98,6 +98,21 @@ class BilibiliLiveSessionExportControllerTests {
     }
 
     @Test
+    void streamsNativeExcelWorkbookWithTheXlsxMediaType() throws Exception {
+        org.mockito.Mockito.when(exportService.prepare(42L)).thenReturn(summary());
+
+        mockMvc.perform(get("/api/bilibili/live-monitor/sessions/{sessionId}/export", 42L)
+                        .queryParam("category", "xlsx"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .andExpect(header().string("Content-Disposition",
+                        "attachment; filename=\"bilibili-live-session-42.xlsx\""));
+
+        verify(exportService).exportPrepared(eq(summary()), eq(BilibiliLiveSessionExportCategory.XLSX), any());
+    }
+
+    @Test
     void rejectsCategoryOutsideTheWhitelistBeforeWritingAResponseBody() throws Exception {
         mockMvc.perform(get("/api/bilibili/live-monitor/sessions/{sessionId}/export", 42L)
                         .queryParam("category", "../all"))

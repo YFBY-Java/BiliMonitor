@@ -57,6 +57,7 @@ public class BilibiliLiveSessionExportService {
             case DANMAKU -> writeDanmakuCsv(summary.id(), outputStream);
             case GIFTS -> writeGiftsCsv(summary.id(), outputStream);
             case USERS -> writeUsersCsv(summary.id(), outputStream);
+            case XLSX -> new BilibiliLiveSessionXlsxWriter(repository).write(summary, outputStream);
             case ALL -> writeZip(summary, outputStream);
         }
     }

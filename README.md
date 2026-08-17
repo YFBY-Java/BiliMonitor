@@ -33,6 +33,7 @@ BiliMonitor 是一个面向 Bilibili 数据监控的模块化社交数据监控�
 - Bilibili 直播间监控：支持按房间号或主播 UID 添加监控，采集直播状态、标题、分区、热度/在线数、关注量、开播/下播/标题变化事件。
 - Bilibili Web 扫码登录：支持二维码生成、前端轮询、Cookie 提取、`nav` 校验、登录态刷新、删除登录态和加密保存。
 - Bilibili 直播弹幕监控：支持 WebSocket 连接、心跳、协议版本 `0/1/2/3`、最近弹幕、分钟级弹幕指标桶、登录态优先和游客态回退。
+- Bilibili 直播场次与导出：支持场次边界、覆盖状态、身份/金额统计、可配置秒级自动刷新，以及原生 XLSX、三类 CSV 和完整 ZIP。
 - Bilibili 直播榜单监控：支持房间观众榜和大航海榜单快照，榜单数据优先读数据库，手动刷新时才请求外部接口。
 - 指定用户聚合工作台：通过 Subject 聚合 Bilibili 粉丝、直播、弹幕、榜单和健康事件，形成单个用户的监控视图。
 - 前端管理界面：包含仪表盘、B站粉丝监控、B站直播监控、指定用户工作台、平台、任务、数据、分析、AI、身份和设置等页面。
@@ -82,6 +83,7 @@ BiliMonitor/
 - MyBatis-Plus 3.5.9；当前 Bilibili 监控主要使用 `NamedParameterJdbcTemplate`。
 - Flyway + PostgreSQL。
 - springdoc-openapi / Swagger UI。
+- Apache POI 5.5.1，用于流式生成原生 XLSX 工作簿。
 - Maven Wrapper。
 
 前端：
@@ -203,7 +205,7 @@ spring:
 | Bilibili 粉丝 | `bilibili_monitored_user`、`bilibili_follower_snapshot` | `V2__bilibili_follower_monitor.sql`、`V3__bilibili_interval_range.sql` | 被监控 UID 的当前状态、采集调度和粉丝趋势快照。 |
 | Bilibili 直播 | `bilibili_live_room_monitor`、`bilibili_live_room_snapshot`、`bilibili_live_status_event` | `V4__bilibili_live_monitor.sql` | 直播间当前状态、历史快照和开播/下播/标题变化事件。 |
 | Subject 工作台 | `monitored_subject`、`subject_bilibili_binding`、`subject_widget_layout` | `V5__subject_monitor.sql` | 指定用户聚合对象、Bilibili 监控绑定和工作台卡片布局。 |
-| Bilibili 弹幕 | `bilibili_live_danmaku_session`、`bilibili_live_danmaku_metric_bucket`、`bilibili_live_danmaku_recent` | `V6__bilibili_live_danmaku_monitor.sql` | 弹幕 WebSocket 会话、分钟级指标桶和最近弹幕。 |
+| Bilibili 弹幕 | `bilibili_live_danmaku_session`、`bilibili_live_danmaku_metric_bucket`、`bilibili_live_danmaku_recent` | `V6__bilibili_live_danmaku_monitor.sql`、`V11__bilibili_live_danmaku_recent_sender_uid.sql` | 弹幕 WebSocket 会话、分钟级指标桶，以及带发送者 UID 的最近弹幕。 |
 | Bilibili 榜单 | `bilibili_live_rank_snapshot`、`bilibili_live_rank_entry` | `V8__bilibili_live_rank_monitor.sql` | 房间观众榜和大航海榜单快照、榜单明细。 |
 | Bilibili 直播场次 | `bilibili_live_session`、`bilibili_live_session_event` | `V10__bilibili_live_session.sql` | 直播场次边界、受支持事件、身份/金额统计和单场导出。 |
 
@@ -960,6 +962,7 @@ SubjectListView.vue / SubjectWorkbenchView.vue
 | `V8__bilibili_live_rank_monitor.sql` | 新增直播房间观众、大航海榜单快照和榜单明细表。 |
 | `V9__douyin_auth_credential.sql` | 新增抖音 OAuth/Web 登录态会话和凭据存储。 |
 | `V10__bilibili_live_session.sql` | 新增 Bilibili 直播场次、场次事件，并为弹幕连接增加 `connected_at`。 |
+| `V11__bilibili_live_danmaku_recent_sender_uid.sql` | 为最近弹幕增加可空 `sender_uid`，供实时列表同时展示昵称和 UID。 |
 
 ### 基础系统与平台表
 
@@ -1218,6 +1221,7 @@ SubjectListView.vue / SubjectWorkbenchView.vue
 保留策略：
 
 - 后端按 `SOCIAL_MONITOR_BILIBILI_LIVE_DANMAKU_RECENT_LIMIT` 保留最近 N 条，默认 `200`。
+- B站扫码登录成功后，当前游客态弹幕连接会异步重连为登录态；新弹幕尽量保存发送者 UID 和完整昵称，历史缺失 UID 的脱敏记录不会猜测回填。
 
 ### Bilibili 直播场次与事件表
 
@@ -1380,7 +1384,7 @@ Bilibili 直播、弹幕、榜单：
 | `GET` | `/api/bilibili/live-monitor/rooms/{roomMonitorId}/sessions` | 获取直播间最近场次。 |
 | `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}` | 获取单场汇总和采集覆盖。 |
 | `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/users` | 获取单场 Top 身份记录。 |
-| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/export?category=danmaku|gifts|users|all` | 下载单场 CSV 或完整 ZIP。 |
+| `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/export?category=xlsx|danmaku|gifts|users|all` | 下载原生 XLSX、单类 CSV 或完整 ZIP。 |
 
 Bilibili 登录态：
 

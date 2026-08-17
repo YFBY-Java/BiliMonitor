@@ -5,7 +5,27 @@
         <h4>场次统计与导出</h4>
         <p>{{ roomName || `监控房间 ${monitorId}` }} · 最近 {{ sessions.length }} 场</p>
       </div>
-      <el-button :icon="Refresh" :loading="sessionsLoading" plain @click="loadSessions">刷新场次</el-button>
+      <div class="session-refresh-controls">
+        <span>每</span>
+        <el-input-number
+          v-model="refreshIntervalSeconds"
+          :min="1"
+          :max="3600"
+          :step="1"
+          controls-position="right"
+          size="small"
+          aria-label="场次统计自动刷新秒数"
+        />
+        <span>秒刷新</span>
+        <el-button
+          :icon="Refresh"
+          :loading="sessionsLoading || autoRefreshInFlight"
+          plain
+          @click="refreshNow"
+        >
+          立即刷新
+        </el-button>
+      </div>
     </div>
 
     <el-alert
@@ -132,8 +152,8 @@
               v-for="action in exportActions"
               :key="action.category"
               size="small"
-              :type="action.category === 'all' ? 'primary' : 'default'"
-              :plain="action.category !== 'all'"
+              :type="action.category === 'xlsx' ? 'primary' : 'default'"
+              :plain="action.category !== 'xlsx'"
               :icon="Download"
               @click="downloadSession(action.category)"
             >
@@ -172,7 +192,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Download, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -196,6 +216,7 @@ import {
   type BilibiliLiveSessionSummary,
   type BilibiliLiveSessionUser
 } from '@/api/bilibiliLiveSessions'
+import { useSessionAutoRefresh } from '@/views/bilibili-live/useSessionAutoRefresh'
 
 const props = defineProps<{
   monitorId: number
@@ -203,6 +224,7 @@ const props = defineProps<{
 }>()
 
 const exportActions: Array<{ category: BilibiliLiveSessionExportCategory; label: string }> = [
+  { category: 'xlsx', label: 'Excel XLSX' },
   { category: 'danmaku', label: '弹幕 CSV' },
   { category: 'gifts', label: '礼物 CSV' },
   { category: 'users', label: '用户 CSV' },
@@ -217,6 +239,7 @@ const sessionsLoading = ref(false)
 const detailLoading = ref(false)
 const detailUnavailable = ref(false)
 const errorMessage = ref('')
+const refreshIntervalSeconds = ref(10)
 let listGeneration = 0
 let detailGeneration = 0
 
@@ -224,26 +247,47 @@ const selectedSession = computed<BilibiliLiveSessionDetail | BilibiliLiveSession
   sessionDetail.value ?? sessions.value.find(session => session.id === selectedSessionId.value)
 )
 
-watch(() => props.monitorId, loadSessions, { immediate: true })
+const sessionAutoRefresh = useSessionAutoRefresh({
+  refresh: () => loadSessions(true),
+  intervalSeconds: refreshIntervalSeconds.value
+})
+const autoRefreshInFlight = sessionAutoRefresh.inFlight
 
-async function loadSessions() {
+watch(() => props.monitorId, () => void loadSessions(false), { immediate: true })
+watch(refreshIntervalSeconds, value => sessionAutoRefresh.setIntervalSeconds(value))
+onBeforeUnmount(sessionAutoRefresh.stop)
+sessionAutoRefresh.start()
+
+async function loadSessions(preserveSelection: boolean) {
   const generation = ++listGeneration
+  const previousSelection = preserveSelection ? selectedSessionId.value : undefined
   detailGeneration += 1
   sessionsLoading.value = true
   detailLoading.value = false
   errorMessage.value = ''
   detailUnavailable.value = false
-  sessionDetail.value = undefined
-  users.value = []
-  selectedSessionId.value = undefined
+  if (!preserveSelection) {
+    sessionDetail.value = undefined
+    users.value = []
+    selectedSessionId.value = undefined
+  }
   try {
     const nextSessions = await fetchBilibiliLiveSessions(props.monitorId, 20)
     if (generation !== listGeneration) return
     sessions.value = nextSessions
-    if (nextSessions.length > 0) await selectSession(nextSessions[0].id)
+    const nextSelection = previousSelection != null && nextSessions.some(session => session.id === previousSelection)
+      ? previousSelection
+      : nextSessions[0]?.id
+    if (nextSelection != null) {
+      await selectSession(nextSelection, preserveSelection && nextSelection === previousSelection)
+    } else {
+      selectedSessionId.value = undefined
+      sessionDetail.value = undefined
+      users.value = []
+    }
   } catch (error) {
     if (generation === listGeneration) {
-      sessions.value = []
+      if (!preserveSelection) sessions.value = []
       errorMessage.value = readableError(error, '场次记录加载失败')
     }
   } finally {
@@ -251,11 +295,13 @@ async function loadSessions() {
   }
 }
 
-async function selectSession(sessionId: number) {
+async function selectSession(sessionId: number, preserveCurrent = false) {
   const generation = ++detailGeneration
   selectedSessionId.value = sessionId
-  sessionDetail.value = undefined
-  users.value = []
+  if (!preserveCurrent) {
+    sessionDetail.value = undefined
+    users.value = []
+  }
   detailUnavailable.value = false
   detailLoading.value = true
   errorMessage.value = ''
@@ -282,6 +328,10 @@ async function selectSession(sessionId: number) {
   detailLoading.value = false
 }
 
+async function refreshNow() {
+  await sessionAutoRefresh.refreshNow()
+}
+
 function downloadSession(category: BilibiliLiveSessionExportCategory) {
   if (!selectedSessionId.value) return
   const relativeUrl = buildBilibiliLiveSessionExportUrl(selectedSessionId.value, category)
@@ -292,7 +342,12 @@ function downloadSession(category: BilibiliLiveSessionExportCategory) {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  ElMessage.success(category === 'all' ? '统一 ZIP 已开始下载' : 'CSV 已开始下载')
+  const message = category === 'xlsx'
+    ? 'Excel 工作簿已开始下载'
+    : category === 'all'
+      ? '统一 ZIP 已开始下载'
+      : 'CSV 已开始下载'
+  ElMessage.success(message)
 }
 
 function sessionStateText(state?: string | null) {
@@ -404,6 +459,19 @@ function readableError(error: unknown, fallback: string) {
 .session-panel-head h4 {
   color: #172033;
   font-size: 18px;
+}
+
+.session-refresh-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.session-refresh-controls :deep(.el-input-number) {
+  width: 92px;
 }
 
 .session-panel-head p,
@@ -761,6 +829,10 @@ function readableError(error: unknown, fallback: string) {
   .top-users-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .session-refresh-controls {
+    flex-wrap: wrap;
   }
 
   .session-list,

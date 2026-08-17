@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Isolation;
@@ -131,6 +134,41 @@ class BilibiliLiveSessionExportServiceTests {
 
         verify(repository).streamDanmaku(eq(42L), any());
         assertThat(consumed).hasValue(rowCount);
+    }
+
+    @Test
+    void xlsxExportIsAReadableWorkbookAndPreservesLongUidsAsText() throws Exception {
+        OffsetDateTime timestamp = OffsetDateTime.parse("2026-08-16T12:01:00+08:00");
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            BilibiliLiveSessionExportRepository.ExportRowConsumer<BilibiliLiveSessionDanmakuExportRow> consumer =
+                    invocation.getArgument(1);
+            consumer.accept(new BilibiliLiveSessionDanmakuExportRow(
+                    timestamp, timestamp, 3_493_094_779_521_411L, "viewer", "medal", "=2+3",
+                    "DANMU_MSG", "3", "event-1"));
+            return null;
+        }).when(repository).streamDanmaku(eq(42L), any());
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        service.export(42L, BilibiliLiveSessionExportCategory.XLSX, output);
+
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(output.toByteArray()))) {
+            assertThat(workbook.getNumberOfSheets()).isEqualTo(4);
+            assertThat(workbook.getSheetName(0)).isEqualTo("场次摘要");
+            assertThat(workbook.getSheetName(1)).isEqualTo("弹幕");
+            assertThat(workbook.getSheetName(2)).isEqualTo("礼物");
+            assertThat(workbook.getSheetName(3)).isEqualTo("用户");
+            assertThat(workbook.getSheet("弹幕").getRow(0).getCell(2).getStringCellValue())
+                    .isEqualTo("sender_uid");
+            assertThat(workbook.getSheet("弹幕").getRow(1).getCell(2).getCellType())
+                    .isEqualTo(CellType.STRING);
+            assertThat(workbook.getSheet("弹幕").getRow(1).getCell(2).getStringCellValue())
+                    .isEqualTo("3493094779521411");
+            assertThat(workbook.getSheet("弹幕").getRow(1).getCell(5).getCellType())
+                    .isEqualTo(CellType.STRING);
+            assertThat(workbook.getSheet("弹幕").getRow(1).getCell(5).getStringCellValue())
+                    .isEqualTo("=2+3");
+        }
     }
 
     private BilibiliLiveSessionSummaryView summary() {

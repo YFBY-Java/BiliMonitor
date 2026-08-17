@@ -1,7 +1,7 @@
 import { getData } from './http'
 
 const BASE_URL = '/api/bilibili/live-monitor'
-const EXPORT_CATEGORIES = ['danmaku', 'gifts', 'users', 'all'] as const
+const EXPORT_CATEGORIES = ['danmaku', 'gifts', 'users', 'xlsx', 'all'] as const
 
 export type BilibiliLiveSessionExportCategory = (typeof EXPORT_CATEGORIES)[number]
 export type BilibiliLiveSessionCoverageStatus =

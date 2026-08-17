@@ -91,7 +91,7 @@ class BilibiliLiveEventIngestionServiceTests {
                 11L, 71L, 33L, EVENT_TIME, 60,
                 1, null, null, null, null, 0, 0, 1
         );
-        verify(legacyRepository).insertRecent(11L, 33L, "hello", "Resolved Alice", "Fans", EVENT_TIME);
+        verify(legacyRepository).insertRecent(11L, 33L, 22L, "hello", "Resolved Alice", "Fans", EVENT_TIME);
         verify(legacyRepository).trimRecent(11L, 30);
         verify(boundaryService, never()).ensureActiveForEvent(any(), any(), any());
         verify(eventRepository, never()).insertIfAbsent(
@@ -119,7 +119,7 @@ class BilibiliLiveEventIngestionServiceTests {
                 1, null, null, null, null, 0, 0, 1
         );
         order.verify(legacyRepository).insertRecent(
-                11L, 33L, "hello", "Resolved Alice", "Fans", EVENT_TIME
+                11L, 33L, 22L, "hello", "Resolved Alice", "Fans", EVENT_TIME
         );
         order.verify(legacyRepository).trimRecent(11L, 30);
     }
@@ -320,7 +320,7 @@ class BilibiliLiveEventIngestionServiceTests {
                 1, null, null, null, null, 0, 0, 1
         );
         verify(legacyRepository).insertRecent(
-                11L, 33L, "hello", "Resolved Alice", "Fans", EVENT_TIME
+                11L, 33L, 22L, "hello", "Resolved Alice", "Fans", EVENT_TIME
         );
         verify(legacyRepository).trimRecent(11L, 30);
     }

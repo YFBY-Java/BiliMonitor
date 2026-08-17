@@ -190,16 +190,25 @@ public class BilibiliLiveDanmakuRepository {
                 .addValue("rawEventDelta", rawEventDelta));
     }
 
-    public void insertRecent(Long monitorId, Long roomId, String messageText, String displayName, String medalName, OffsetDateTime sentAt) {
+    public void insertRecent(
+            Long monitorId,
+            Long roomId,
+            Long senderUid,
+            String messageText,
+            String displayName,
+            String medalName,
+            OffsetDateTime sentAt
+    ) {
         String sql = """
                 INSERT INTO bilibili_live_danmaku_recent (
-                    live_room_monitor_id, room_id, message_text, display_name, medal_name, sent_at
+                    live_room_monitor_id, room_id, sender_uid, message_text, display_name, medal_name, sent_at
                 )
-                VALUES (:monitorId, :roomId, :messageText, :displayName, :medalName, :sentAt)
+                VALUES (:monitorId, :roomId, :senderUid, :messageText, :displayName, :medalName, :sentAt)
                 """;
         jdbcTemplate.update(sql, new MapSqlParameterSource()
                 .addValue("monitorId", monitorId)
                 .addValue("roomId", roomId)
+                .addValue("senderUid", senderUid != null && senderUid > 0 ? senderUid : null)
                 .addValue("messageText", truncate(messageText, 500))
                 .addValue("displayName", truncate(displayName, 160))
                 .addValue("medalName", truncate(medalName, 80))
@@ -351,6 +360,7 @@ public class BilibiliLiveDanmakuRepository {
                 rs.getLong("id"),
                 rs.getLong("live_room_monitor_id"),
                 rs.getLong("room_id"),
+                nullableLong(rs, "sender_uid"),
                 rs.getString("message_text"),
                 rs.getString("display_name"),
                 rs.getString("medal_name"),

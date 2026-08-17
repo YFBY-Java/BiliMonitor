@@ -1,6 +1,6 @@
 # 下次接手提示
 
-最后更新：2026-08-16
+最后更新：2026-08-17
 
 这份文档给下次的你，也给下次接手的 Codex。目标是用最少时间重新建立上下文。
 
@@ -30,11 +30,13 @@
 - 用户工作台右侧 `BilibiliLiveDanmuWidget.vue` 已支持 `弹幕`、`房间观众`、`大航海` 三视图切换；榜单视图复用直播榜单 `summary/refresh` API，不复制数据到 Subject 表。
 - 弹幕 WebSocket 支持 `protover=0/1/2/3`，默认自动候选优先 `3`。
 - 弹幕 WebSocket 现在优先用已保存登录态调用 `getDanmuInfo`，并在鉴权包里写同一账号 mid；`/danmaku/status` 暴露 `authMode` 和 `authUid` 方便确认当前是否为 `LOGIN`。
+- 新登录态保存成功后，活动的 `ANONYMOUS` 弹幕连接会异步重连并升级为 `LOGIN`；最近弹幕从 V11 起保存正 UID，工作台尽量同时展示昵称和 UID。
 - 弹幕昵称获取不再只靠游客态；游客态仍作为登录态不可用、过期或触发风控时的回退。
 - 用户工作台弹幕列表在鼠标未悬停弹幕监控区域时自动追最新；鼠标悬停在整个弹幕监控卡片区域时暂停自动下滑，移出后恢复。
-- 直播页已有“场次统计与导出”面板：按场次展示边界、采集覆盖、弹幕/礼物/付费、身份记录和金额，并支持三类 CSV 与完整 ZIP。
+- 直播页已有“场次统计与导出”面板：按场次展示边界、采集覆盖、弹幕/礼物/付费、身份记录和金额，支持可配置秒级自动刷新、立即刷新、原生 XLSX、三类 CSV 与完整 ZIP。
 - 场次统计只覆盖部署后 WebSocket 在线期间成功解析并持久化的受支持事件；未知/畸形帧、连接空档、持久化失败和平台历史不在该口径内。
 - `V10__bilibili_live_session.sql` 新增直播场次/事件，并用 `connected_at` 区分 WebSocket 启动与真正在线；历史不完整边界保存为 `INCOMPLETE`，不伪造结束时间或零明细。
+- `V11__bilibili_live_danmaku_recent_sender_uid.sql` 为最近弹幕增加可空 UID；历史缺失值保持为空。
 - 工作台头像自动回填；前端头像图片需要保留 `referrerpolicy="no-referrer"`。
 - 采集间隔最小支持 `1` 秒，最大支持 `2592000` 秒。
 - B站 Web 扫码登录获取登录态的首期代码已经实现并通过真实扫码验收，入口在 `/bilibili` 页面顶部的登录态面板。
@@ -69,6 +71,8 @@
 - [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/)
 - [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/danmaku/service/BilibiliLiveEventIngestionService.java)
 - [`../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V10__bilibili_live_session.sql)
+- [`../social-data-monitor/backend/src/main/resources/db/migration/V11__bilibili_live_danmaku_recent_sender_uid.sql`](../social-data-monitor/backend/src/main/resources/db/migration/V11__bilibili_live_danmaku_recent_sender_uid.sql)
+- [`../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/export/BilibiliLiveSessionXlsxWriter.java`](../social-data-monitor/backend/src/main/java/com/socialmonitor/bilibili/live/session/export/BilibiliLiveSessionXlsxWriter.java)
 - [`bilibili-live-session-data.md`](bilibili-live-session-data.md)
 
 用户监控和弹幕后端：
@@ -162,6 +166,7 @@ Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/auth/status
 # Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/rooms/{roomMonitorId}/sessions
 # Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}
 # Invoke-WebRequest 'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/export?category=all' -OutFile session.zip
+# Invoke-WebRequest 'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/export?category=xlsx' -OutFile session.xlsx
 ```
 
 浏览器检查：
@@ -191,7 +196,7 @@ http://127.0.0.1:5173/subjects
 - 直播页详情区“房间观众与大航海”是否能切换榜单类型，并能手动刷新榜单。
 - 旧弹幕脱敏名是否显示为“昵称待补全”，新弹幕是否尽量补全真实昵称。
 - 鼠标悬停在弹幕监控区域时，弹幕列表是否暂停自动下滑；移出后是否恢复追最新。
-- 场次面板是否始终单行对齐昵称、UID、统计和金额；历史场次是否明确显示覆盖状态，ZIP 是否包含 manifest/summary/三类明细。
+- 场次面板是否始终单行对齐昵称、UID、统计和金额；自动/立即刷新是否保留选择；XLSX 是否包含四个工作表且长 UID 不丢精度；ZIP 是否包含 manifest/summary/三类明细。
 - `/bilibili` 顶部登录态面板是否能显示当前登录账号，必要时再打开扫码弹窗重扫。
 
 ## 常见下一步任务

@@ -6,6 +6,7 @@ public record BilibiliLiveDanmakuRecent(
         Long id,
         Long liveRoomMonitorId,
         Long roomId,
+        Long senderUid,
         String messageText,
         String displayName,
         String medalName,

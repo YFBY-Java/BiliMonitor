@@ -16,6 +16,7 @@ class BilibiliLiveSessionExportCategoryTests {
             "danmaku,DANMAKU",
             "gifts,GIFTS",
             "users,USERS",
+            "xlsx,XLSX",
             "all,ALL"
     })
     void acceptsOnlyTheStableLowercaseWireValues(String wireValue, String expected) {

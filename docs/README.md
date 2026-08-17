@@ -1,6 +1,6 @@
 # BiliMonitor 项目文档
 
-最后更新：2026-08-16
+最后更新：2026-08-17
 
 本目录是 `.` 的根级交接文档，面向下次运行项目、下次继续开发，以及下次接手的 Codex。当前真正可运行的应用工程在 [`../social-data-monitor/`](../social-data-monitor/)。
 
@@ -13,7 +13,7 @@
 - 下次想查 B站直播间接口选型：看 [`bilibili-live-room-api-research.md`](bilibili-live-room-api-research.md)。
 - 下次想查 B站直播房间观众/大航海榜单接口：看 [`bilibili-live-room-audience-guard-rank-research.md`](bilibili-live-room-audience-guard-rank-research.md)。
 - 下次想查 B站直播弹幕和 WebSocket 信息流方案：看 [`bilibili-live-danmaku-research.md`](bilibili-live-danmaku-research.md)。当前实现是登录态优先、游客态回退。
-- 下次想查直播场次、事件留存、统计口径和 CSV/ZIP 导出：看 [`bilibili-live-session-data.md`](bilibili-live-session-data.md)。
+- 下次想查直播场次、事件留存、统计口径、自动刷新和 XLSX/CSV/ZIP 导出：看 [`bilibili-live-session-data.md`](bilibili-live-session-data.md)。
 - 下次想继续 B站扫码登录/登录态功能：先看 [`../social-data-monitor/docs/bilibili-qr-login-design.md`](../social-data-monitor/docs/bilibili-qr-login-design.md)，再看 [`bilibili-login-research.md`](bilibili-login-research.md) 和 [`handoff.md`](handoff.md)。
 - 下次想改“用户监控”聚合工作台和 B站直播弹幕模块：先看 [`feature-status.md`](feature-status.md)、[`architecture.md`](architecture.md)、[`data-model.md`](data-model.md) 和 [`frontend-notes.md`](frontend-notes.md)；早期技术方案保留在 [`bilibili-user-monitor-workbench-technical-plan.md`](bilibili-user-monitor-workbench-technical-plan.md)，最终样式图见 [`mockups/bilibili-user-monitor-style-a-combined-chart.png`](mockups/bilibili-user-monitor-style-a-combined-chart.png)。
 - 下次想查抖音、微博、小红书是否能抓公开用户名称/粉丝数等数据：看 [`douyin-weibo-xiaohongshu-public-user-data-research.md`](douyin-weibo-xiaohongshu-public-user-data-research.md)。
@@ -38,7 +38,7 @@
 | [`bilibili-live-room-api-research.md`](bilibili-live-room-api-research.md) | B站直播间相关接口、风控程度、请求参数、可获取数据和接入优先级。 |
 | [`bilibili-live-room-audience-guard-rank-research.md`](bilibili-live-room-audience-guard-rank-research.md) | B站直播间房间观众、大航海榜单接口、字段和接入边界。 |
 | [`bilibili-live-danmaku-research.md`](bilibili-live-danmaku-research.md) | B站直播弹幕与 WebSocket 信息流的低成本获取方案、实测结果、事件清单和接入路线。 |
-| [`bilibili-live-session-data.md`](bilibili-live-session-data.md) | B站直播场次边界、事件留存、身份/金额口径、查询 API、覆盖状态和 CSV/ZIP 导出。 |
+| [`bilibili-live-session-data.md`](bilibili-live-session-data.md) | B站直播场次边界、事件留存、身份/金额口径、查询 API、自动刷新、覆盖状态和 XLSX/CSV/ZIP 导出。 |
 | [`bilibili-login-research.md`](bilibili-login-research.md) | B站 Web 扫码登录、Cookie、`refresh_token`、`nav` 校验和刷新链路研究。 |
 | [`../social-data-monitor/docs/bilibili-qr-login-design.md`](../social-data-monitor/docs/bilibili-qr-login-design.md) | B站扫码登录获取登录态的当前设计、已实现状态、接口、数据表和验收清单。 |
 | [`bilibili-user-monitor-workbench-technical-plan.md`](bilibili-user-monitor-workbench-technical-plan.md) | 指定用户监控工作台早期技术方案；当前首版已经落地，真实状态以 [`feature-status.md`](feature-status.md) 为准。 |
@@ -56,7 +56,7 @@
 
 ## 当前主线
 
-`social-data-monitor/` 是一个 Vue 3 + Spring Boot + PostgreSQL 的多社媒数据监控应用雏形。当前最完整、最可运行的功能有三条：B站用户粉丝数趋势监控、B站直播间监控、B站指定用户监控工作台。前者支持多 UID 粉丝趋势、头像资料、定时采集和趋势图；直播间监控支持按房间号或 UID 添加直播间、采集直播状态/在线热度/房间信息、直播场次边界与受支持事件、房间观众和大航海榜单、趋势图，以及单场 CSV/ZIP 导出；用户监控工作台把同一 B站 UID 的粉丝、直播热度、弹幕、房间观众和大航海榜单聚合到 `/subjects` 和 `/subjects/{subjectId}`。B站 Web 扫码登录获取登录态的首期代码已经接入 `/bilibili` 页面和后端 `/api/bilibili/auth/**`，并已通过真实扫码、凭据入库、解密读取和后端重启后 `nav` 校验。直播弹幕模块已复用该登录态优先获取发送者昵称，失败时回退游客态；工作台弹幕列表在鼠标不悬停时自动追最新，悬停弹幕监控区域时暂停自动下滑。
+`social-data-monitor/` 是一个 Vue 3 + Spring Boot + PostgreSQL 的多社媒数据监控应用雏形。当前最完整、最可运行的功能有三条：B站用户粉丝数趋势监控、B站直播间监控、B站指定用户监控工作台。前者支持多 UID 粉丝趋势、头像资料、定时采集和趋势图；直播间监控支持按房间号或 UID 添加直播间、采集直播状态/在线热度/房间信息、直播场次边界与受支持事件、房间观众和大航海榜单、趋势图，以及单场 XLSX/CSV/ZIP 导出；用户监控工作台把同一 B站 UID 的粉丝、直播热度、弹幕、房间观众和大航海榜单聚合到 `/subjects` 和 `/subjects/{subjectId}`。B站 Web 扫码登录获取登录态的首期代码已经接入 `/bilibili` 页面和后端 `/api/bilibili/auth/**`，并已通过真实扫码、凭据入库、解密读取和后端重启后 `nav` 校验。扫码成功后，活动的游客态弹幕连接会异步升级为登录态；工作台弹幕列表尽量展示昵称和 UID，并在鼠标不悬停时自动追最新，悬停弹幕监控区域时暂停自动下滑。
 
 根目录另外保留了两个重要资料来源：
 

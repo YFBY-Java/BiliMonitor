@@ -41,6 +41,9 @@ describe('Bilibili live session helpers', () => {
     expect(buildBilibiliLiveSessionExportUrl(42, 'users')).toBe(
       '/api/bilibili/live-monitor/sessions/42/export?category=users'
     )
+    expect(buildBilibiliLiveSessionExportUrl(42, 'xlsx')).toBe(
+      '/api/bilibili/live-monitor/sessions/42/export?category=xlsx'
+    )
     expect(buildBilibiliLiveSessionExportUrl(42, 'all')).toBe(
       '/api/bilibili/live-monitor/sessions/42/export?category=all'
     )
@@ -48,6 +51,7 @@ describe('Bilibili live session helpers', () => {
 
   it('rejects categories outside the export whitelist', () => {
     expect(isBilibiliLiveSessionExportCategory('users')).toBe(true)
+    expect(isBilibiliLiveSessionExportCategory('xlsx')).toBe(true)
     expect(isBilibiliLiveSessionExportCategory('users&admin=true')).toBe(false)
     expect(() => buildBilibiliLiveSessionExportUrl(42, 'users&admin=true')).toThrow('Unsupported export category')
   })
