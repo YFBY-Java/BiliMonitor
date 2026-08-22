@@ -1,6 +1,6 @@
 # 运行指南
 
-最后更新：2026-08-17
+最后更新：2026-08-22
 
 本指南以 Windows PowerShell 为主，因为当前工作区运行在 `.`。
 
@@ -25,6 +25,8 @@ cd social-data-monitor
 ```text
 http://127.0.0.1:5173/bilibili
 http://127.0.0.1:5173/bilibili/live
+http://127.0.0.1:5173/data
+http://127.0.0.1:5173/analytics
 http://127.0.0.1:5173/subjects
 ```
 
@@ -236,6 +238,8 @@ app:
 Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/rooms/{monitorId}/sessions
 Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}
 Invoke-RestMethod http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/users
+Invoke-RestMethod 'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/events?page=1&size=50'
+Invoke-RestMethod 'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/insights?bucketSeconds=300'
 
 Invoke-WebRequest `
   'http://127.0.0.1:8080/api/bilibili/live-monitor/sessions/{sessionId}/export?category=all' `
@@ -251,7 +255,8 @@ Invoke-WebRequest `
 - 先看 `coverageStatus`。`BOUNDARY_ONLY` 和 `NO_ONLINE_COVERAGE` 不应被理解成平台真实零值。
 - 检查 `transportSessionCount`、`captureStartedAt`、`captureEndedAt` 是否存在合理的 WebSocket 在线区间。
 - 完整 ZIP 应包含 `manifest.json`、`summary.csv`、`danmaku.csv`、`gifts.csv`、`users.csv`。
-- XLSX 应包含“场次摘要”“弹幕”“礼物”“用户”四个工作表，响应类型为 `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`；长 UID 应保持文本。
+- CSV 和 XLSX 的第一行应为英文机器字段名，第二行应为逐列对应的中文说明，实际数据从第三行开始；响应头 `X-Export-Schema-Version` 应为 `2`。
+- XLSX 应包含“场次摘要”“弹幕”“礼物”“用户”四个工作表，响应类型为 `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`；长 UID 应保持文本，并冻结前两行。
 - XLSX/CSV/ZIP 只覆盖部署后 WebSocket 在线期间成功解析并持久化的受支持事件，不代表平台全量历史。
 - 详细字段、状态与金额口径见 [`bilibili-live-session-data.md`](bilibili-live-session-data.md)。
 

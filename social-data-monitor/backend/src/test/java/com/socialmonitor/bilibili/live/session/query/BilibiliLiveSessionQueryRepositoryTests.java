@@ -53,6 +53,17 @@ class BilibiliLiveSessionQueryRepositoryTests {
     }
 
     @Test
+    void eventSqlCastsNullableFiltersBeforeNullChecksForPostgresql() {
+        String sql = compact(BilibiliLiveSessionQueryRepository.SESSION_EVENTS_SQL);
+
+        assertThat(sql)
+                .contains("CAST(:kind AS varchar) IS NULL")
+                .contains("CAST(:userUid AS bigint) IS NULL")
+                .contains("CAST(:paid AS boolean) IS NULL")
+                .contains("CAST(:keyword AS varchar) IS NULL");
+    }
+
+    @Test
     void summarySqlKeepsGiftSendersSeparateFromPaidSpenders() {
         String sql = compact(BilibiliLiveSessionQueryRepository.SESSION_SUMMARY_SELECT);
 

@@ -52,6 +52,19 @@ class BilibiliLiveSessionQueryServiceTests {
                                 .isEqualTo(ErrorCode.NOT_FOUND));
     }
 
+    @Test
+    void normalizesEventFiltersAndCapsPageSize() {
+        when(repository.findSession(42L)).thenReturn(Optional.of(summary(42L)));
+        when(repository.findEvents(42L, "GIFT", "小电视", 99L, true, 0, 100))
+                .thenReturn(List.of());
+        when(repository.countEvents(42L, "GIFT", "小电视", 99L, true)).thenReturn(0L);
+
+        service.events(42L, " gift ", "  小电视  ", 99L, true, -1, 999);
+
+        verify(repository).findEvents(42L, "GIFT", "小电视", 99L, true, 0, 100);
+        verify(repository).countEvents(42L, "GIFT", "小电视", 99L, true);
+    }
+
     private BilibiliLiveSessionSummaryView summary(Long id) {
         OffsetDateTime startedAt = OffsetDateTime.parse("2026-08-16T12:00:00+08:00");
         return new BilibiliLiveSessionSummaryView(

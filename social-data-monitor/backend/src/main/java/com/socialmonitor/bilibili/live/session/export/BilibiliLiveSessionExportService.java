@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(prefix = "app.bilibili.live-monitor", name = "storage-enabled", matchIfMissing = true)
 public class BilibiliLiveSessionExportService {
 
-    public static final String SCHEMA_VERSION = "1";
+    public static final String SCHEMA_VERSION = "2";
     public static final String CAPTURE_SCOPE = "received_while_websocket_online_since_deployment";
 
     private static final List<String> ALL_ENTRY_NAMES = List.of(
@@ -115,15 +115,7 @@ public class BilibiliLiveSessionExportService {
     private void writeSummaryCsv(BilibiliLiveSessionSummaryView summary, OutputStream outputStream)
             throws IOException {
         BilibiliLiveSessionCsvWriter csv = new BilibiliLiveSessionCsvWriter(outputStream);
-        csv.writeRow(
-                "id", "monitor_id", "uid", "room_id", "state", "started_at", "ended_at",
-                "start_source", "end_source", "coverage_status", "transport_session_count",
-                "capture_started_at", "capture_ended_at", "danmaku_count", "gift_event_count", "gift_count",
-                "free_gift_count", "gift_sender_count", "paid_user_count", "interacting_user_count",
-                "unresolved_interacting_event_count", "unresolved_gift_event_count",
-                "unresolved_paid_event_count", "paid_event_count", "paid_amount_milli_yuan",
-                "first_event_at", "last_event_at"
-        );
+        writeColumnRows(csv, BilibiliLiveSessionExportColumns.SUMMARY);
         csv.writeRow(
                 summary.id(), summary.monitorId(), summary.uid(), summary.roomId(), summary.state(),
                 summary.startedAt(), summary.endedAt(), summary.startSource(), summary.endSource(),
@@ -140,10 +132,7 @@ public class BilibiliLiveSessionExportService {
 
     private void writeDanmakuCsv(Long sessionId, OutputStream outputStream) throws IOException {
         BilibiliLiveSessionCsvWriter csv = new BilibiliLiveSessionCsvWriter(outputStream);
-        csv.writeRow(
-                "occurred_at", "received_at", "sender_uid", "sender_name", "medal_name", "message_text",
-                "command", "protocol_version", "source_event_id"
-        );
+        writeColumnRows(csv, BilibiliLiveSessionExportColumns.DANMAKU);
         repository.streamDanmaku(sessionId, row -> csv.writeRow(
                 row.occurredAt(), row.receivedAt(), row.senderUid(), row.senderName(), row.medalName(),
                 row.messageText(), row.command(), row.protocolVersion(), row.sourceEventId()
@@ -153,13 +142,7 @@ public class BilibiliLiveSessionExportService {
 
     private void writeGiftsCsv(Long sessionId, OutputStream outputStream) throws IOException {
         BilibiliLiveSessionCsvWriter csv = new BilibiliLiveSessionCsvWriter(outputStream);
-        csv.writeRow(
-                "occurred_at", "received_at", "event_kind", "sender_uid", "sender_name", "medal_name",
-                "message_text", "gift_id", "gift_name", "gift_count", "coin_type",
-                "unit_price_milli_yuan", "paid_amount_milli_yuan",
-                "paid", "guard_level", "amount_source", "command", "protocol_version", "source_event_id",
-                "event_key", "transport_session_id"
-        );
+        writeColumnRows(csv, BilibiliLiveSessionExportColumns.GIFTS);
         repository.streamGifts(sessionId, row -> csv.writeRow(
                 row.occurredAt(), row.receivedAt(), row.eventKind(), row.senderUid(), row.senderName(),
                 row.medalName(), row.messageText(), row.giftId(), row.giftName(), row.giftCount(),
@@ -172,11 +155,7 @@ public class BilibiliLiveSessionExportService {
 
     private void writeUsersCsv(Long sessionId, OutputStream outputStream) throws IOException {
         BilibiliLiveSessionCsvWriter csv = new BilibiliLiveSessionCsvWriter(outputStream);
-        csv.writeRow(
-                "actor_key", "identity_quality", "user_uid", "display_name", "danmaku_count",
-                "gift_event_count", "gift_count",
-                "free_gift_count", "paid_event_count", "paid_amount_milli_yuan", "first_seen_at", "last_seen_at"
-        );
+        writeColumnRows(csv, BilibiliLiveSessionExportColumns.USERS);
         repository.streamUsers(sessionId, row -> csv.writeRow(
                 row.actorKey(), row.identityQuality(), row.userUid(), row.displayName(), row.danmakuCount(),
                 row.giftEventCount(),
@@ -184,6 +163,14 @@ public class BilibiliLiveSessionExportService {
                 row.firstSeenAt(), row.lastSeenAt()
         ));
         csv.flush();
+    }
+
+    private void writeColumnRows(
+            BilibiliLiveSessionCsvWriter csv,
+            BilibiliLiveSessionExportColumns.ColumnSet columns
+    ) throws IOException {
+        csv.writeRow(columns.headers().toArray());
+        csv.writeRow(columns.comments().toArray());
     }
 
     private void putEntry(ZipOutputStream zip, String name) throws IOException {

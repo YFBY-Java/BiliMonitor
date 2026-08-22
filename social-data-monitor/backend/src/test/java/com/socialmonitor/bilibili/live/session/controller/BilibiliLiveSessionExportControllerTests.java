@@ -68,7 +68,7 @@ class BilibiliLiveSessionExportControllerTests {
                         "attachment; filename=\"bilibili-live-session-42-danmaku.csv\""))
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
-                .andExpect(header().string("X-Export-Schema-Version", "1"))
+                .andExpect(header().string("X-Export-Schema-Version", "2"))
                 .andExpect(header().string("X-Capture-Scope",
                         "received_while_websocket_online_since_deployment"))
                 .andExpect(header().string("X-Coverage-Status", "RECEIVED_WHILE_ONLINE"))
@@ -88,7 +88,7 @@ class BilibiliLiveSessionExportControllerTests {
                         "attachment; filename=\"bilibili-live-session-42-all.zip\""))
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
-                .andExpect(header().string("X-Export-Schema-Version", "1"))
+                .andExpect(header().string("X-Export-Schema-Version", "2"))
                 .andExpect(header().string("X-Coverage-Status", "RECEIVED_WHILE_ONLINE"));
 
         InOrder calls = inOrder(exportService);

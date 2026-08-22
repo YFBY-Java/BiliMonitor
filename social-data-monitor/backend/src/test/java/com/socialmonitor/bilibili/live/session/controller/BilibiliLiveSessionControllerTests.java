@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionSummaryView;
+import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionEventPageView;
+import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionEventView;
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionUserView;
 import com.socialmonitor.bilibili.live.session.query.BilibiliLiveSessionQueryService;
 import java.time.OffsetDateTime;
@@ -64,6 +66,30 @@ class BilibiliLiveSessionControllerTests {
 
         verify(queryService).session(42L);
         verify(queryService).users(42L, 100);
+    }
+
+    @Test
+    void exposesFilteredSessionEventsWithStablePagingDefaults() throws Exception {
+        OffsetDateTime occurredAt = OffsetDateTime.parse("2026-08-16T12:01:00+08:00");
+        BilibiliLiveSessionEventView event = new BilibiliLiveSessionEventView(
+                9L, 42L, "DANMAKU", "DANMU_MSG", 99L, "viewer", "舰长",
+                "今晚好热闹", null, null, null, false, 0L, null,
+                occurredAt, occurredAt.plusSeconds(1));
+        when(queryService.events(42L, "DANMAKU", "热闹", 99L, false, 1, 50))
+                .thenReturn(new BilibiliLiveSessionEventPageView(List.of(event), 1L, 1, 50));
+
+        mockMvc.perform(get("/api/bilibili/live-monitor/sessions/{sessionId}/events", 42L)
+                        .param("kind", "DANMAKU")
+                        .param("keyword", "热闹")
+                        .param("userUid", "99")
+                        .param("paid", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(1L))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(50))
+                .andExpect(jsonPath("$.data.items[0].messageText").value("今晚好热闹"));
+
+        verify(queryService).events(42L, "DANMAKU", "热闹", 99L, false, 1, 50);
     }
 
     private BilibiliLiveSessionSummaryView summary() {

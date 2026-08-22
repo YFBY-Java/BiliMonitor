@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   BILIBILI_LIVE_SESSION_IDENTITY_METRIC_LABELS,
   buildBilibiliLiveSessionExportUrl,
+  buildBilibiliLiveSessionEventsUrl,
+  buildBilibiliLiveSessionInsightsUrl,
   buildBilibiliLiveSessionUrl,
   buildBilibiliLiveSessionUsersUrl,
   buildBilibiliLiveSessionsUrl,
@@ -28,6 +30,14 @@ describe('Bilibili live session helpers', () => {
     )
     expect(buildBilibiliLiveSessionUsersUrl(42, 100)).toBe(
       '/api/bilibili/live-monitor/sessions/42/users?limit=100'
+    )
+    expect(buildBilibiliLiveSessionEventsUrl(42, {
+      kind: 'GIFT', keyword: '小电视', userUid: 99, paid: true, page: 2, size: 25
+    })).toBe(
+      '/api/bilibili/live-monitor/sessions/42/events?kind=GIFT&keyword=%E5%B0%8F%E7%94%B5%E8%A7%86&userUid=99&paid=true&page=2&size=25'
+    )
+    expect(buildBilibiliLiveSessionInsightsUrl(42, 300)).toBe(
+      '/api/bilibili/live-monitor/sessions/42/insights?bucketSeconds=300'
     )
   })
 
@@ -60,6 +70,7 @@ describe('Bilibili live session helpers', () => {
     expect(() => buildBilibiliLiveSessionsUrl(0, 20)).toThrow('monitorId must be a positive integer')
     expect(() => buildBilibiliLiveSessionUrl(Number.NaN)).toThrow('sessionId must be a positive integer')
     expect(() => buildBilibiliLiveSessionUsersUrl(42, 0)).toThrow('limit must be a positive integer')
+    expect(() => buildBilibiliLiveSessionInsightsUrl(42, 120)).toThrow('Unsupported bucketSeconds')
   })
 
   it('converts milli-yuan to a yuan display value without discarding milli precision', () => {

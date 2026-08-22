@@ -2,6 +2,7 @@ package com.socialmonitor.bilibili.live.session.controller;
 
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionSummaryView;
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionUserView;
+import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionEventPageView;
 import com.socialmonitor.bilibili.live.session.query.BilibiliLiveSessionQueryService;
 import com.socialmonitor.common.response.ApiResponse;
 import java.util.List;
@@ -42,5 +43,18 @@ public class BilibiliLiveSessionController {
             @RequestParam(defaultValue = "100") int limit
     ) {
         return ApiResponse.ok(queryService.users(sessionId, limit));
+    }
+
+    @GetMapping("/sessions/{sessionId}/events")
+    public ApiResponse<BilibiliLiveSessionEventPageView> events(
+            @PathVariable Long sessionId,
+            @RequestParam(required = false) String kind,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long userUid,
+            @RequestParam(required = false) Boolean paid,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return ApiResponse.ok(queryService.events(sessionId, kind, keyword, userUid, paid, page, size));
     }
 }

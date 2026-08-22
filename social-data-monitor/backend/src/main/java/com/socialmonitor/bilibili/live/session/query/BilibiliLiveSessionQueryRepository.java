@@ -2,6 +2,7 @@ package com.socialmonitor.bilibili.live.session.query;
 
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionSummaryView;
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionUserView;
+import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionEventView;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -211,6 +212,32 @@ public class BilibiliLiveSessionQueryRepository {
             LIMIT :limit
             """;
 
+    static final String SESSION_EVENTS_WHERE = """
+            FROM bilibili_live_session_event event
+            WHERE event.live_session_id = :sessionId
+              AND event.event_kind IN ('DANMAKU', 'GIFT', 'SUPER_CHAT', 'GUARD_BUY')
+              AND (CAST(:kind AS varchar) IS NULL OR event.event_kind = CAST(:kind AS varchar))
+              AND (CAST(:userUid AS bigint) IS NULL OR event.sender_uid = CAST(:userUid AS bigint))
+              AND (CAST(:paid AS boolean) IS NULL OR COALESCE(event.paid, false) = CAST(:paid AS boolean))
+              AND (CAST(:keyword AS varchar) IS NULL
+                   OR event.sender_name ILIKE '%' || CAST(:keyword AS varchar) || '%'
+                   OR event.message_text ILIKE '%' || CAST(:keyword AS varchar) || '%'
+                   OR event.gift_name ILIKE '%' || CAST(:keyword AS varchar) || '%')
+            """;
+
+    static final String SESSION_EVENTS_SQL = """
+            SELECT event.id, event.live_session_id, event.event_kind, event.command,
+                   event.sender_uid, event.sender_name, event.medal_name, event.message_text,
+                   event.gift_id, event.gift_name, event.gift_count, event.paid,
+                   event.paid_amount_milli_yuan, event.guard_level,
+                   event.occurred_at, event.received_at
+            """ + SESSION_EVENTS_WHERE + """
+            ORDER BY event.occurred_at DESC, event.id DESC
+            OFFSET :offset LIMIT :limit
+            """;
+
+    static final String SESSION_EVENTS_COUNT_SQL = "SELECT COUNT(*) " + SESSION_EVENTS_WHERE;
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     public BilibiliLiveSessionQueryRepository(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -233,6 +260,44 @@ public class BilibiliLiveSessionQueryRepository {
         return jdbcTemplate.query(SESSION_USERS_SQL, new MapSqlParameterSource()
                 .addValue("sessionId", sessionId)
                 .addValue("limit", limit), this::mapUser);
+    }
+
+    public List<BilibiliLiveSessionEventView> findEvents(
+            Long sessionId,
+            String kind,
+            String keyword,
+            Long userUid,
+            Boolean paid,
+            int offset,
+            int limit
+    ) {
+        MapSqlParameterSource parameters = eventParameters(sessionId, kind, keyword, userUid, paid)
+                .addValue("offset", offset)
+                .addValue("limit", limit);
+        return jdbcTemplate.query(SESSION_EVENTS_SQL, parameters, this::mapEvent);
+    }
+
+    public long countEvents(Long sessionId, String kind, String keyword, Long userUid, Boolean paid) {
+        Long count = jdbcTemplate.queryForObject(
+                SESSION_EVENTS_COUNT_SQL,
+                eventParameters(sessionId, kind, keyword, userUid, paid),
+                Long.class);
+        return count == null ? 0L : count;
+    }
+
+    private MapSqlParameterSource eventParameters(
+            Long sessionId,
+            String kind,
+            String keyword,
+            Long userUid,
+            Boolean paid
+    ) {
+        return new MapSqlParameterSource()
+                .addValue("sessionId", sessionId)
+                .addValue("kind", kind)
+                .addValue("keyword", keyword)
+                .addValue("userUid", userUid)
+                .addValue("paid", paid);
     }
 
     private BilibiliLiveSessionSummaryView mapSummary(ResultSet resultSet, int rowNum) throws SQLException {
@@ -284,8 +349,39 @@ public class BilibiliLiveSessionQueryRepository {
         );
     }
 
+    private BilibiliLiveSessionEventView mapEvent(ResultSet resultSet, int rowNum) throws SQLException {
+        return new BilibiliLiveSessionEventView(
+                resultSet.getLong("id"),
+                resultSet.getLong("live_session_id"),
+                resultSet.getString("event_kind"),
+                resultSet.getString("command"),
+                nullableLong(resultSet, "sender_uid"),
+                resultSet.getString("sender_name"),
+                resultSet.getString("medal_name"),
+                resultSet.getString("message_text"),
+                nullableLong(resultSet, "gift_id"),
+                resultSet.getString("gift_name"),
+                nullableLong(resultSet, "gift_count"),
+                nullableBoolean(resultSet, "paid"),
+                nullableLong(resultSet, "paid_amount_milli_yuan"),
+                nullableInteger(resultSet, "guard_level"),
+                offsetDateTime(resultSet, "occurred_at"),
+                offsetDateTime(resultSet, "received_at")
+        );
+    }
+
     private Long nullableLong(ResultSet resultSet, String column) throws SQLException {
         long value = resultSet.getLong(column);
+        return resultSet.wasNull() ? null : value;
+    }
+
+    private Boolean nullableBoolean(ResultSet resultSet, String column) throws SQLException {
+        boolean value = resultSet.getBoolean(column);
+        return resultSet.wasNull() ? null : value;
+    }
+
+    private Integer nullableInteger(ResultSet resultSet, String column) throws SQLException {
+        int value = resultSet.getInt(column);
         return resultSet.wasNull() ? null : value;
     }
 

@@ -62,6 +62,132 @@ export interface BilibiliLiveSessionUser {
   lastSeenAt?: string | null
 }
 
+export type BilibiliLiveSessionEventKind = 'DANMAKU' | 'GIFT' | 'SUPER_CHAT' | 'GUARD_BUY'
+
+export interface BilibiliLiveSessionEvent {
+  id: number
+  sessionId: number
+  eventKind: BilibiliLiveSessionEventKind
+  command?: string | null
+  senderUid?: number | null
+  senderName?: string | null
+  medalName?: string | null
+  messageText?: string | null
+  giftId?: number | null
+  giftName?: string | null
+  giftCount?: number | null
+  paid?: boolean | null
+  paidAmountMilliYuan?: number | null
+  guardLevel?: number | null
+  occurredAt: string
+  receivedAt?: string | null
+}
+
+export interface BilibiliLiveSessionEventPage {
+  items: BilibiliLiveSessionEvent[]
+  total: number
+  page: number
+  size: number
+}
+
+export interface BilibiliLiveSessionEventQuery {
+  kind?: BilibiliLiveSessionEventKind | ''
+  keyword?: string
+  userUid?: number
+  paid?: boolean
+  page?: number
+  size?: number
+}
+
+export interface BilibiliLiveSessionInsight {
+  sessionId: number
+  bucketSeconds: 60 | 300 | 900
+  kpis: {
+    danmakuPerMinute?: number | null
+    payerConversionRate?: number | null
+    arppuMilliYuan?: number | null
+    paidAmountMilliYuan?: number | null
+    topFiveRevenueShare?: number | null
+  }
+  timeline: Array<{
+    bucketStart: string
+    danmakuCount: number
+    paidEventCount: number
+    paidAmountMilliYuan: number
+    activeUserCount: number
+  }>
+  peaks: Array<{
+    type: 'INTERACTION' | 'REVENUE'
+    bucketStart: string
+    value: number
+    label: string
+  }>
+  userSegments: Array<{
+    code: string
+    label: string
+    userCount: number
+    description: string
+  }>
+  giftMix: Array<{
+    giftName: string
+    eventKind: string
+    giftCount: number
+    paidAmountMilliYuan: number
+    revenueShare: number
+  }>
+  findings: Array<{
+    code: string
+    level: 'INFO' | 'OPPORTUNITY' | 'RISK'
+    title: string
+    description: string
+  }>
+  danmakuDepth: {
+    identifiedDanmakuUserCount?: number | null
+    identifiedDanmakuCount?: number | null
+    messagesPerActiveUser?: number | null
+    repeatInteractionRate?: number | null
+    sustainedParticipationRate?: number | null
+    duplicateMessageRate?: number | null
+    stages: Array<{
+      code: 'OPENING' | 'MIDDLE' | 'ENDING'
+      label: string
+      danmakuCount: number
+      activeUserCount: number
+      messageShare: number
+    }>
+    repeatedMessages: Array<{
+      messageText: string
+      messageCount: number
+      userCount: number
+    }>
+  }
+  paymentDepth: {
+    payerCount?: number | null
+    repeatPayerRate?: number | null
+    engagedPayerRate?: number | null
+    returningPayerRate?: number | null
+    medianPayerAmountMilliYuan?: number | null
+    medianConversionLagSeconds?: number | null
+    topOneRevenueShare?: number | null
+    spendTiers: Array<{
+      code: 'LIGHT' | 'STANDARD' | 'CORE'
+      label: string
+      userCount: number
+      paidAmountMilliYuan: number
+      revenueShare: number
+    }>
+  }
+  quality: {
+    coverageStatus: BilibiliLiveSessionCoverageStatus
+    coveredSeconds: number
+    identityResolvedEventShare?: number | null
+    supportedEventCount: number
+    unresolvedInteractionEventCount: number
+    eventLatencyP95Millis?: number | null
+    caveat: string
+  }
+}
+
 export function buildBilibiliLiveSessionsUrl(monitorId: number, limit = 20): string {
   return `${BASE_URL}/rooms/${positiveIntegerSegment(monitorId, 'monitorId')}/sessions?${new URLSearchParams({
     limit: String(positiveInteger(limit, 'limit'))
@@ -75,6 +201,32 @@ export function buildBilibiliLiveSessionUrl(sessionId: number): string {
 export function buildBilibiliLiveSessionUsersUrl(sessionId: number, limit = 100): string {
   return `${buildBilibiliLiveSessionUrl(sessionId)}/users?${new URLSearchParams({
     limit: String(positiveInteger(limit, 'limit'))
+  })}`
+}
+
+export function buildBilibiliLiveSessionEventsUrl(
+  sessionId: number,
+  query: BilibiliLiveSessionEventQuery = {}
+): string {
+  const parameters = new URLSearchParams()
+  if (query.kind) parameters.set('kind', query.kind)
+  if (query.keyword?.trim()) parameters.set('keyword', query.keyword.trim())
+  if (query.userUid != null) parameters.set('userUid', String(positiveInteger(query.userUid, 'userUid')))
+  if (query.paid != null) parameters.set('paid', String(query.paid))
+  parameters.set('page', String(positiveInteger(query.page ?? 1, 'page')))
+  parameters.set('size', String(positiveInteger(query.size ?? 50, 'size')))
+  return `${buildBilibiliLiveSessionUrl(sessionId)}/events?${parameters}`
+}
+
+export function buildBilibiliLiveSessionInsightsUrl(
+  sessionId: number,
+  bucketSeconds: 60 | 300 | 900 | number = 300
+): string {
+  if (![60, 300, 900].includes(bucketSeconds)) {
+    throw new Error(`Unsupported bucketSeconds: ${bucketSeconds}`)
+  }
+  return `${buildBilibiliLiveSessionUrl(sessionId)}/insights?${new URLSearchParams({
+    bucketSeconds: String(bucketSeconds)
   })}`
 }
 
@@ -160,6 +312,22 @@ export function fetchBilibiliLiveSessionUsers(
   limit = 100
 ): Promise<BilibiliLiveSessionUser[]> {
   return getData<BilibiliLiveSessionUser[]>(buildBilibiliLiveSessionUsersUrl(sessionId, limit))
+}
+
+export function fetchBilibiliLiveSessionEvents(
+  sessionId: number,
+  query: BilibiliLiveSessionEventQuery = {}
+): Promise<BilibiliLiveSessionEventPage> {
+  return getData<BilibiliLiveSessionEventPage>(buildBilibiliLiveSessionEventsUrl(sessionId, query))
+}
+
+export function fetchBilibiliLiveSessionInsights(
+  sessionId: number,
+  bucketSeconds: 60 | 300 | 900 = 300
+): Promise<BilibiliLiveSessionInsight> {
+  return getData<BilibiliLiveSessionInsight>(
+    buildBilibiliLiveSessionInsightsUrl(sessionId, bucketSeconds)
+  )
 }
 
 function positiveIntegerSegment(value: number, name: string): string {

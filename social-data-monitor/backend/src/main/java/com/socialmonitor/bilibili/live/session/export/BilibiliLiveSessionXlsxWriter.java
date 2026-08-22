@@ -20,12 +20,14 @@ final class BilibiliLiveSessionXlsxWriter {
     private final BilibiliLiveSessionExportRepository repository;
     private final SXSSFWorkbook workbook;
     private final CellStyle headerStyle;
+    private final CellStyle commentStyle;
 
     BilibiliLiveSessionXlsxWriter(BilibiliLiveSessionExportRepository repository) {
         this.repository = repository;
         this.workbook = new SXSSFWorkbook(100);
         this.workbook.setCompressTempFiles(true);
         this.headerStyle = createHeaderStyle();
+        this.commentStyle = createCommentStyle();
     }
 
     void write(BilibiliLiveSessionSummaryView summary, OutputStream outputStream) throws IOException {
@@ -43,14 +45,7 @@ final class BilibiliLiveSessionXlsxWriter {
     }
 
     private void writeSummary(BilibiliLiveSessionSummaryView summary) {
-        SheetRows rows = sheet("场次摘要",
-                "id", "monitor_id", "uid", "room_id", "state", "started_at", "ended_at",
-                "start_source", "end_source", "coverage_status", "transport_session_count",
-                "capture_started_at", "capture_ended_at", "danmaku_count", "gift_event_count", "gift_count",
-                "free_gift_count", "gift_sender_count", "paid_user_count", "interacting_user_count",
-                "unresolved_interacting_event_count", "unresolved_gift_event_count",
-                "unresolved_paid_event_count", "paid_event_count", "paid_amount_milli_yuan",
-                "first_event_at", "last_event_at");
+        SheetRows rows = sheet("场次摘要", BilibiliLiveSessionExportColumns.SUMMARY);
         rows.write(
                 identifier(summary.id()), identifier(summary.monitorId()), identifier(summary.uid()),
                 identifier(summary.roomId()), summary.state(), summary.startedAt(), summary.endedAt(),
@@ -65,9 +60,7 @@ final class BilibiliLiveSessionXlsxWriter {
     }
 
     private void writeDanmaku(Long sessionId) throws IOException {
-        SheetRows rows = sheet("弹幕",
-                "occurred_at", "received_at", "sender_uid", "sender_name", "medal_name", "message_text",
-                "command", "protocol_version", "source_event_id");
+        SheetRows rows = sheet("弹幕", BilibiliLiveSessionExportColumns.DANMAKU);
         repository.streamDanmaku(sessionId, row -> rows.write(
                 row.occurredAt(), row.receivedAt(), identifier(row.senderUid()), row.senderName(), row.medalName(),
                 row.messageText(), row.command(), row.protocolVersion(), row.sourceEventId()));
@@ -75,11 +68,7 @@ final class BilibiliLiveSessionXlsxWriter {
     }
 
     private void writeGifts(Long sessionId) throws IOException {
-        SheetRows rows = sheet("礼物",
-                "occurred_at", "received_at", "event_kind", "sender_uid", "sender_name", "medal_name",
-                "message_text", "gift_id", "gift_name", "gift_count", "coin_type",
-                "unit_price_milli_yuan", "paid_amount_milli_yuan", "paid", "guard_level", "amount_source",
-                "command", "protocol_version", "source_event_id", "event_key", "transport_session_id");
+        SheetRows rows = sheet("礼物", BilibiliLiveSessionExportColumns.GIFTS);
         repository.streamGifts(sessionId, row -> rows.write(
                 row.occurredAt(), row.receivedAt(), row.eventKind(), identifier(row.senderUid()), row.senderName(),
                 row.medalName(), row.messageText(), identifier(row.giftId()), row.giftName(), row.giftCount(),
@@ -90,10 +79,7 @@ final class BilibiliLiveSessionXlsxWriter {
     }
 
     private void writeUsers(Long sessionId) throws IOException {
-        SheetRows rows = sheet("用户",
-                "actor_key", "identity_quality", "user_uid", "display_name", "danmaku_count",
-                "gift_event_count", "gift_count", "free_gift_count", "paid_event_count",
-                "paid_amount_milli_yuan", "first_seen_at", "last_seen_at");
+        SheetRows rows = sheet("用户", BilibiliLiveSessionExportColumns.USERS);
         repository.streamUsers(sessionId, row -> rows.write(
                 row.actorKey(), row.identityQuality(), identifier(row.userUid()), row.displayName(),
                 row.danmakuCount(), row.giftEventCount(), row.giftCount(), row.freeGiftCount(),
@@ -101,13 +87,14 @@ final class BilibiliLiveSessionXlsxWriter {
         rows.finish();
     }
 
-    private SheetRows sheet(String name, String... headers) {
+    private SheetRows sheet(String name, BilibiliLiveSessionExportColumns.ColumnSet columns) {
         Sheet sheet = workbook.createSheet(name);
-        sheet.createFreezePane(0, 1);
-        for (int index = 0; index < headers.length; index++) {
-            sheet.setColumnWidth(index, columnWidth(headers[index]) * 256);
+        sheet.createFreezePane(0, 2);
+        for (int index = 0; index < columns.headers().size(); index++) {
+            sheet.setColumnWidth(index,
+                    columnWidth(columns.headers().get(index), columns.comments().get(index)) * 256);
         }
-        return new SheetRows(sheet, headers);
+        return new SheetRows(sheet, columns);
     }
 
     private CellStyle createHeaderStyle() {
@@ -122,20 +109,32 @@ final class BilibiliLiveSessionXlsxWriter {
         return style;
     }
 
-    private int columnWidth(String header) {
+    private CellStyle createCommentStyle() {
+        Font font = workbook.createFont();
+        font.setColor(IndexedColors.DARK_BLUE.getIndex());
+        CellStyle style = workbook.createCellStyle();
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setWrapText(true);
+        style.setBorderBottom(BorderStyle.THIN);
+        return style;
+    }
+
+    private int columnWidth(String header, String comment) {
+        int baseWidth;
         if (header.endsWith("_at")) {
-            return 30;
+            baseWidth = 30;
+        } else if (header.endsWith("_id") || header.endsWith("_uid") || "event_key".equals(header)) {
+            baseWidth = 24;
+        } else if ("message_text".equals(header)) {
+            baseWidth = 56;
+        } else if (header.contains("name")) {
+            baseWidth = 24;
+        } else {
+            baseWidth = 18;
         }
-        if (header.endsWith("_id") || header.endsWith("_uid") || "event_key".equals(header)) {
-            return 24;
-        }
-        if ("message_text".equals(header)) {
-            return 56;
-        }
-        if (header.contains("name")) {
-            return 24;
-        }
-        return 18;
+        return Math.max(baseWidth, Math.min(36, comment.length() * 2));
     }
 
     private String identifier(Object value) {
@@ -161,16 +160,21 @@ final class BilibiliLiveSessionXlsxWriter {
 
         private final Sheet sheet;
         private final int columnCount;
-        private int nextRow = 1;
+        private int nextRow = 2;
 
-        private SheetRows(Sheet sheet, String[] headers) {
+        private SheetRows(Sheet sheet, BilibiliLiveSessionExportColumns.ColumnSet columns) {
             this.sheet = sheet;
-            this.columnCount = headers.length;
+            this.columnCount = columns.headers().size();
             Row header = sheet.createRow(0);
-            for (int index = 0; index < headers.length; index++) {
+            Row comments = sheet.createRow(1);
+            comments.setHeightInPoints(32F);
+            for (int index = 0; index < columns.headers().size(); index++) {
                 Cell cell = header.createCell(index);
-                cell.setCellValue(headers[index]);
+                cell.setCellValue(columns.headers().get(index));
                 cell.setCellStyle(headerStyle);
+                Cell comment = comments.createCell(index);
+                comment.setCellValue(columns.comments().get(index));
+                comment.setCellStyle(commentStyle);
             }
         }
 

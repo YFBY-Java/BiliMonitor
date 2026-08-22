@@ -61,7 +61,7 @@ class BilibiliLiveSessionExportServiceTests {
         assertThat(entries).containsExactly(
                 "manifest.json", "summary.csv", "danmaku.csv", "gifts.csv", "users.csv");
         assertThat(new String(contents.get("manifest.json"), StandardCharsets.UTF_8))
-                .contains("\"schema_version\":\"1\"")
+                .contains("\"schema_version\":\"2\"")
                 .contains("\"amount_unit\":\"milli_yuan\"")
                 .contains("\"capture_scope\":\"received_while_websocket_online_since_deployment\"")
                 .contains("\"coverage_status\":\"RECEIVED_WHILE_ONLINE\"")
@@ -75,6 +75,51 @@ class BilibiliLiveSessionExportServiceTests {
         verify(repository).streamDanmaku(eq(42L), any());
         verify(repository).streamGifts(eq(42L), any());
         verify(repository).streamUsers(eq(42L), any());
+    }
+
+    @Test
+    void csvFilesPlaceChineseColumnCommentsDirectlyBelowMachineHeaders() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        service.export(42L, BilibiliLiveSessionExportCategory.ALL, output);
+
+        Map<String, byte[]> contents = new LinkedHashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(output.toByteArray()))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                contents.put(entry.getName(), zip.readAllBytes());
+            }
+        }
+        assertFirstTwoCsvRows(contents.get("summary.csv"),
+                "id,monitor_id,uid,room_id,state,started_at,ended_at,start_source,end_source,coverage_status,"
+                        + "transport_session_count,capture_started_at,capture_ended_at,danmaku_count,"
+                        + "gift_event_count,gift_count,free_gift_count,gift_sender_count,paid_user_count,"
+                        + "interacting_user_count,unresolved_interacting_event_count,unresolved_gift_event_count,"
+                        + "unresolved_paid_event_count,paid_event_count,paid_amount_milli_yuan,first_event_at,"
+                        + "last_event_at",
+                "场次记录 ID,直播监控记录 ID,主播 B站 UID,直播间 ID,场次状态,场次开始时间,场次结束时间,"
+                        + "开始边界来源,结束边界来源,数据覆盖状态,WebSocket 传输会话数,在线采集开始时间,"
+                        + "在线采集结束时间,弹幕事件数,礼物事件数,礼物数量,免费礼物数量,已识别送礼用户数,"
+                        + "已识别付费用户数,已识别互动用户数,未解析身份的互动事件数,未解析身份的送礼事件数,"
+                        + "未解析身份的付费事件数,付费事件数,消费金额（千分之一元）,首条事件时间,末条事件时间");
+        assertFirstTwoCsvRows(contents.get("danmaku.csv"),
+                "occurred_at,received_at,sender_uid,sender_name,medal_name,message_text,command,protocol_version,"
+                        + "source_event_id",
+                "事件发生时间,系统接收时间,发送者 B站 UID,发送者昵称,粉丝勋章名称,弹幕内容,B站消息命令,"
+                        + "协议版本,上游事件 ID");
+        assertFirstTwoCsvRows(contents.get("gifts.csv"),
+                "occurred_at,received_at,event_kind,sender_uid,sender_name,medal_name,message_text,gift_id,"
+                        + "gift_name,gift_count,coin_type,unit_price_milli_yuan,paid_amount_milli_yuan,paid,"
+                        + "guard_level,amount_source,command,protocol_version,source_event_id,event_key,"
+                        + "transport_session_id",
+                "事件发生时间,系统接收时间,事件类型,发送者 B站 UID,发送者昵称,粉丝勋章名称,消息文本,礼物 ID,"
+                        + "礼物名称,礼物数量,平台币类型,单件价格（千分之一元）,实付金额（千分之一元）,是否付费,"
+                        + "舰队等级,金额来源,B站消息命令,协议版本,上游事件 ID,事件去重键,WebSocket 传输会话 ID");
+        assertFirstTwoCsvRows(contents.get("users.csv"),
+                "actor_key,identity_quality,user_uid,display_name,danmaku_count,gift_event_count,gift_count,"
+                        + "free_gift_count,paid_event_count,paid_amount_milli_yuan,first_seen_at,last_seen_at",
+                "身份聚合键,身份识别质量,用户 B站 UID,用户昵称,弹幕事件数,礼物事件数,礼物数量,免费礼物数量,"
+                        + "付费事件数,消费金额（千分之一元）,首次出现时间,最后出现时间");
     }
 
     @Test
@@ -160,15 +205,29 @@ class BilibiliLiveSessionExportServiceTests {
             assertThat(workbook.getSheetName(3)).isEqualTo("用户");
             assertThat(workbook.getSheet("弹幕").getRow(0).getCell(2).getStringCellValue())
                     .isEqualTo("sender_uid");
-            assertThat(workbook.getSheet("弹幕").getRow(1).getCell(2).getCellType())
-                    .isEqualTo(CellType.STRING);
             assertThat(workbook.getSheet("弹幕").getRow(1).getCell(2).getStringCellValue())
-                    .isEqualTo("3493094779521411");
-            assertThat(workbook.getSheet("弹幕").getRow(1).getCell(5).getCellType())
+                    .isEqualTo("发送者 B站 UID");
+            assertThat(workbook.getSheet("场次摘要").getRow(1).getCell(0).getStringCellValue())
+                    .isEqualTo("场次记录 ID");
+            assertThat(workbook.getSheet("礼物").getRow(1).getCell(20).getStringCellValue())
+                    .isEqualTo("WebSocket 传输会话 ID");
+            assertThat(workbook.getSheet("用户").getRow(1).getCell(3).getStringCellValue())
+                    .isEqualTo("用户昵称");
+            assertThat(workbook.getSheet("弹幕").getRow(2)).isNotNull();
+            assertThat(workbook.getSheet("弹幕").getRow(2).getCell(2).getCellType())
                     .isEqualTo(CellType.STRING);
-            assertThat(workbook.getSheet("弹幕").getRow(1).getCell(5).getStringCellValue())
+            assertThat(workbook.getSheet("弹幕").getRow(2).getCell(2).getStringCellValue())
+                    .isEqualTo("3493094779521411");
+            assertThat(workbook.getSheet("弹幕").getRow(2).getCell(5).getCellType())
+                    .isEqualTo(CellType.STRING);
+            assertThat(workbook.getSheet("弹幕").getRow(2).getCell(5).getStringCellValue())
                     .isEqualTo("=2+3");
         }
+    }
+
+    private void assertFirstTwoCsvRows(byte[] bytes, String header, String comments) {
+        String csv = new String(bytes, 3, bytes.length - 3, StandardCharsets.UTF_8);
+        assertThat(csv.split("\\r\\n", -1)).startsWith(header, comments);
     }
 
     private BilibiliLiveSessionSummaryView summary() {
