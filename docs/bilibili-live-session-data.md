@@ -56,7 +56,11 @@ Flyway `V11__bilibili_live_danmaku_recent_sender_uid.sql` 为最近弹幕表增�
 | `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/export?category=xlsx` | 下载包含摘要、弹幕、礼物和用户四个工作表的原生 XLSX。 |
 | `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/export?category=all` | 下载完整 ZIP。 |
 
-XLSX 文件名为 `bilibili-live-session-{sessionId}.xlsx`，工作表固定为“场次摘要”“弹幕”“礼物”“用户”。每个工作表第一行是稳定的英文机器字段名，第二行是逐列对应的中文说明，实际数据从第三行开始；工作簿冻结前两行。标识符（特别是长 UID）按文本单元格写入，避免 Excel 的 15 位数字精度限制；用户文本始终写成字符串而不是公式。工作簿使用流式行窗口生成，适合直接在 Excel 中筛选、查看和保留列类型。
+下载文件统一为 `{用户名}-{导出日期}-第{N}次导出-{中文数据类型}.{extension}`，例如 `全险半挂炉-2026-09-13-第1次导出-弹幕.csv`。数据类型使用“弹幕”“礼物”“用户”，XLSX 和 ZIP 使用“完整数据”。日期按北京时间计算，每位主播 UID 每天从 1 开始，跨场次和格式共用序号；序号保存在数据库中，重启不会重置。编号在生成下载响应时分配，下载失败或取消可能留下跳号。用户名中的文件名非法字符替换为下划线；缺少用户名时使用 `uid-{主播UID}`。下载响应使用 UTF-8 文件名编码，支持中文昵称。
+
+Flyway `V12__bilibili_live_export_daily_counter.sql` 新增 `bilibili_live_export_daily_counter`，主键为 `(uid, export_date)`，`export_count` 存储当天已分配编号。原子递增在独立事务中执行，导出数据仍使用只读 `REPEATABLE READ` 快照；ZIP 内部文件名及表格字段保持原有格式。
+
+XLSX 工作表固定为“场次摘要”“弹幕”“礼物”“用户”。每个工作表第一行是稳定的英文机器字段名，第二行是逐列对应的中文说明，实际数据从第三行开始；工作簿冻结前两行。标识符（特别是长 UID）按文本单元格写入，避免 Excel 的 15 位数字精度限制；用户文本始终写成字符串而不是公式。工作簿使用流式行窗口生成，适合直接在 Excel 中筛选、查看和保留列类型。
 
 完整 ZIP 包含 `manifest.json`、`summary.csv`、`danmaku.csv`、`gifts.csv` 和 `users.csv`。每个 CSV 同样以英文机器字段名作为第一行、中文说明作为第二行，实际数据从第三行开始。CSV 使用 UTF-8 BOM、CRLF 和标准引号转义，并对可能触发电子表格公式执行的文本做安全处理。CSV 适合跨工具交换或按单类流式处理，XLSX 更适合直接用 Excel 查看；两者使用相同数据源、列说明和覆盖口径。该结构对应导出 schema version `2`。所有导出都在 PostgreSQL `REPEATABLE READ` 只读事务中完成，保证同一次下载中的汇总和明细来自同一快照。
 

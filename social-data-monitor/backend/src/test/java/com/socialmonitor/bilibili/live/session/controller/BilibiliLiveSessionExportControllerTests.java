@@ -15,7 +15,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.socialmonitor.bilibili.live.session.export.BilibiliLiveSessionExportCategory;
 import com.socialmonitor.bilibili.live.session.export.BilibiliLiveSessionExportService;
+import com.socialmonitor.bilibili.live.session.export.BilibiliLiveExportSequence;
+import java.time.LocalDate;
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionSummaryView;
+import com.socialmonitor.bilibili.live.repository.BilibiliLiveMonitorRepository;
+import com.socialmonitor.bilibili.live.domain.BilibiliLiveRoomMonitor;
+import org.springframework.http.ContentDisposition;
+import java.util.Optional;
 import com.socialmonitor.common.error.ErrorCode;
 import com.socialmonitor.common.exception.BusinessException;
 import com.socialmonitor.common.exception.GlobalExceptionHandler;
@@ -40,18 +46,29 @@ class BilibiliLiveSessionExportControllerTests {
     @Mock
     private BilibiliLiveSessionExportService exportService;
 
+    @Mock
+    private BilibiliLiveMonitorRepository monitorRepository;
+
+    @Mock
+    private BilibiliLiveExportSequence exportSequence;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new BilibiliLiveSessionExportController(exportService))
+                .standaloneSetup(new BilibiliLiveSessionExportController(exportService, monitorRepository, exportSequence))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
     @Test
     void streamsCsvWithDownloadAndSecurityHeaders() throws Exception {
+        org.mockito.Mockito.when(exportSequence.next(1001L)).thenReturn(
+                new BilibiliLiveExportSequence.Allocation(LocalDate.of(2026, 9, 13), 1L));
+        BilibiliLiveRoomMonitor monitor = org.mockito.Mockito.mock(BilibiliLiveRoomMonitor.class);
+        org.mockito.Mockito.when(monitor.uname()).thenReturn("测试主播");
+        org.mockito.Mockito.when(monitorRepository.findById(7L)).thenReturn(Optional.of(monitor));
         org.mockito.Mockito.when(exportService.prepare(42L)).thenReturn(summary());
         doAnswer(invocation -> {
             OutputStream output = invocation.getArgument(2);
@@ -64,8 +81,9 @@ class BilibiliLiveSessionExportControllerTests {
                         .queryParam("category", "danmaku"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/csv;charset=UTF-8"))
-                .andExpect(header().string("Content-Disposition",
-                        "attachment; filename=\"bilibili-live-session-42-danmaku.csv\""))
+                .andExpect(result -> assertThat(ContentDisposition.parse(result.getResponse()
+                        .getHeader("Content-Disposition")).getFilename())
+                        .isEqualTo("测试主播-2026-09-13-第1次导出-弹幕.csv"))
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andExpect(header().string("X-Export-Schema-Version", "2"))
@@ -79,13 +97,16 @@ class BilibiliLiveSessionExportControllerTests {
 
     @Test
     void streamsUnifiedExportAsZip() throws Exception {
+        org.mockito.Mockito.when(exportSequence.next(1001L)).thenReturn(
+                new BilibiliLiveExportSequence.Allocation(LocalDate.of(2026, 9, 13), 2L));
         org.mockito.Mockito.when(exportService.prepare(42L)).thenReturn(summary());
         mockMvc.perform(get("/api/bilibili/live-monitor/sessions/{sessionId}/export", 42L)
                         .queryParam("category", "all"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/zip"))
-                .andExpect(header().string("Content-Disposition",
-                        "attachment; filename=\"bilibili-live-session-42-all.zip\""))
+                .andExpect(result -> assertThat(ContentDisposition.parse(result.getResponse()
+                        .getHeader("Content-Disposition")).getFilename())
+                        .isEqualTo("uid-1001-2026-09-13-第2次导出-完整数据.zip"))
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andExpect(header().string("X-Export-Schema-Version", "2"))
@@ -99,6 +120,11 @@ class BilibiliLiveSessionExportControllerTests {
 
     @Test
     void streamsNativeExcelWorkbookWithTheXlsxMediaType() throws Exception {
+        org.mockito.Mockito.when(exportSequence.next(1001L)).thenReturn(
+                new BilibiliLiveExportSequence.Allocation(LocalDate.of(2026, 9, 14), 1L));
+        BilibiliLiveRoomMonitor monitor = org.mockito.Mockito.mock(BilibiliLiveRoomMonitor.class);
+        org.mockito.Mockito.when(monitor.uname()).thenReturn("主播/测试:\r\n");
+        org.mockito.Mockito.when(monitorRepository.findById(7L)).thenReturn(Optional.of(monitor));
         org.mockito.Mockito.when(exportService.prepare(42L)).thenReturn(summary());
 
         mockMvc.perform(get("/api/bilibili/live-monitor/sessions/{sessionId}/export", 42L)
@@ -106,8 +132,9 @@ class BilibiliLiveSessionExportControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .andExpect(header().string("Content-Disposition",
-                        "attachment; filename=\"bilibili-live-session-42.xlsx\""));
+                .andExpect(result -> assertThat(ContentDisposition.parse(result.getResponse()
+                        .getHeader("Content-Disposition")).getFilename())
+                        .isEqualTo("主播_测试___-2026-09-14-第1次导出-完整数据.xlsx"));
 
         verify(exportService).exportPrepared(eq(summary()), eq(BilibiliLiveSessionExportCategory.XLSX), any());
     }
@@ -121,6 +148,7 @@ class BilibiliLiveSessionExportControllerTests {
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
 
         verify(exportService, never()).exportPrepared(any(), any(), any());
+        verify(exportSequence, never()).next(any());
     }
 
     @Test
@@ -138,6 +166,7 @@ class BilibiliLiveSessionExportControllerTests {
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
 
         verify(exportService).prepare(404L);
+        verify(exportSequence, never()).next(any());
         verify(exportService, never()).exportPrepared(any(), any(), any());
     }
 

@@ -2,12 +2,16 @@ package com.socialmonitor.bilibili.live.session.controller;
 
 import com.socialmonitor.bilibili.live.session.export.BilibiliLiveSessionExportCategory;
 import com.socialmonitor.bilibili.live.session.export.BilibiliLiveSessionExportService;
+import com.socialmonitor.bilibili.live.session.export.BilibiliLiveExportSequence;
 import com.socialmonitor.bilibili.live.session.dto.BilibiliLiveSessionSummaryView;
+import com.socialmonitor.bilibili.live.repository.BilibiliLiveMonitorRepository;
+import com.socialmonitor.bilibili.live.domain.BilibiliLiveRoomMonitor;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,9 +26,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class BilibiliLiveSessionExportController {
 
     private final BilibiliLiveSessionExportService exportService;
+    private final BilibiliLiveMonitorRepository monitorRepository;
+    private final BilibiliLiveExportSequence exportSequence;
 
-    public BilibiliLiveSessionExportController(BilibiliLiveSessionExportService exportService) {
+    public BilibiliLiveSessionExportController(BilibiliLiveSessionExportService exportService,
+            BilibiliLiveMonitorRepository monitorRepository, BilibiliLiveExportSequence exportSequence) {
         this.exportService = exportService;
+        this.monitorRepository = monitorRepository;
+        this.exportSequence = exportSequence;
     }
 
     @GetMapping("/{sessionId}/export")
@@ -46,6 +55,22 @@ public class BilibiliLiveSessionExportController {
             BilibiliLiveSessionSummaryView summary,
             BilibiliLiveSessionExportCategory category
     ) {
+        String prefix = monitorRepository.findById(summary.monitorId())
+                .map(BilibiliLiveRoomMonitor::uname)
+                .map(name -> name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").strip())
+                .filter(name -> !name.isBlank())
+                .map(name -> name.substring(0, name.offsetByCodePoints(0,
+                        Math.min(80, name.codePointCount(0, name.length())))))
+                .orElse("uid-" + summary.uid());
+        BilibiliLiveExportSequence.Allocation allocation = exportSequence.next(summary.uid());
+        String basename = prefix + "-" + allocation.date() + "-第" + allocation.number() + "次导出";
+        String categoryName = switch (category) {
+            case DANMAKU -> "弹幕";
+            case GIFTS -> "礼物";
+            case USERS -> "用户";
+            case XLSX, ALL -> "完整数据";
+        };
+        String filename = basename + "-" + categoryName + "." + category.extension();
         if (category == BilibiliLiveSessionExportCategory.ALL) {
             response.setContentType("application/zip");
         } else if (category == BilibiliLiveSessionExportCategory.XLSX) {
@@ -54,13 +79,9 @@ public class BilibiliLiveSessionExportController {
             response.setContentType("text/csv");
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         }
-        String filename = category == BilibiliLiveSessionExportCategory.XLSX
-                ? "bilibili-live-session-" + summary.id() + ".xlsx"
-                : "bilibili-live-session-" + summary.id() + "-"
-                        + category.wireValue() + "." + category.extension();
         response.setHeader(
                 HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=\"" + filename + "\""
+                ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString()
         );
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         response.setHeader("X-Content-Type-Options", "nosniff");
