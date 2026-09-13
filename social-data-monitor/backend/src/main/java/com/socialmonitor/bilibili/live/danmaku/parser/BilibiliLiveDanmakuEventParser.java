@@ -15,13 +15,19 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class BilibiliLiveDanmakuEventParser {
 
     private static final ZoneOffset DISPLAY_OFFSET = ZoneOffset.ofHours(8);
+    private static final Logger log = LoggerFactory.getLogger(BilibiliLiveDanmakuEventParser.class);
 
     private final ObjectMapper objectMapper;
 
@@ -30,6 +36,36 @@ public class BilibiliLiveDanmakuEventParser {
     }
 
     public Optional<BilibiliLiveDanmakuEvent> parse(String rawJson, OffsetDateTime receivedAt) {
+        return parseAll(rawJson, receivedAt).stream().findFirst();
+    }
+
+    /** One V2 broadcast can contain multiple gifts. Transport consumers must use this method. */
+    public List<BilibiliLiveDanmakuEvent> parseAll(String rawJson, OffsetDateTime receivedAt) {
+        try {
+            if (rawJson != null && rawJson.contains("SEND_GIFT_V2")) {
+                JsonNode root = objectMapper.readTree(rawJson);
+                String command = root.path("cmd").asText("");
+                if ("SEND_GIFT_V2".equals(normalizeCommand(command))) {
+                    var safeReceivedAt = receivedAt == null ? OffsetDateTime.now(DISPLAY_OFFSET) : receivedAt;
+                    List<BilibiliLiveDanmakuEvent> events = new ArrayList<>();
+                    for (ObjectNode data : BilibiliGiftV2Decoder.decode(root.path("data").path("pb").asText())) {
+                        ObjectNode decoded = ((ObjectNode) root).deepCopy();
+                        decoded.set("data", data);
+                        events.add(giftEvent(command, "SEND_GIFT", decoded, rawJson,
+                                safeReceivedAt, eventTime(decoded, safeReceivedAt)));
+                    }
+                    return events;
+                }
+            }
+        } catch (Exception exception) {
+            // Do not log raw payloads or identity data. Never invent a gift from a malformed message.
+            log.warn("Unable to decode Bilibili SEND_GIFT_V2. errorType={}", exception.getClass().getSimpleName());
+            return List.of();
+        }
+        return parseSingle(rawJson, receivedAt).stream().toList();
+    }
+
+    private Optional<BilibiliLiveDanmakuEvent> parseSingle(String rawJson, OffsetDateTime receivedAt) {
         if (rawJson == null || rawJson.isBlank() || !rawJson.trim().startsWith("{")) {
             return Optional.empty();
         }

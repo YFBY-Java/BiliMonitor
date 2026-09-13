@@ -87,7 +87,7 @@ public record BilibiliLiveDanmakuEvent(
 
     public int giftMetricDelta() {
         String normalizedCommand = command == null ? "" : command.split(":", 2)[0];
-        return "SEND_GIFT".equals(normalizedCommand) || "COMBO_SEND".equals(normalizedCommand) ? 1 : 0;
+        return kind == EventKind.GIFT || "COMBO_SEND".equals(normalizedCommand) ? 1 : 0;
     }
 
     public int superChatMetricDelta() {

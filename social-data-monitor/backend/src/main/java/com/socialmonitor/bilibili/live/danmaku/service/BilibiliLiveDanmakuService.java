@@ -385,7 +385,7 @@ public class BilibiliLiveDanmakuService {
             return;
         }
         OffsetDateTime receivedAt = OffsetDateTime.now(DISPLAY_OFFSET);
-        eventParser.parse(packet.bodyText(), receivedAt).ifPresent(event -> applyEvent(handle, event));
+        eventParser.parseAll(packet.bodyText(), receivedAt).forEach(event -> applyEvent(handle, event));
     }
 
     private void applyEvent(ConnectionHandle handle, BilibiliLiveDanmakuEvent event) {
@@ -675,8 +675,8 @@ public class BilibiliLiveDanmakuService {
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
             if (last) {
-                eventParser.parse(data.toString(), OffsetDateTime.now(DISPLAY_OFFSET))
-                        .ifPresent(event -> applyEvent(handle, event));
+                eventParser.parseAll(data.toString(), OffsetDateTime.now(DISPLAY_OFFSET))
+                        .forEach(event -> applyEvent(handle, event));
             }
             webSocket.request(1);
             return CompletableFuture.completedFuture(null);

@@ -1,6 +1,6 @@
 # B站直播场次、事件留存与导出
 
-最后更新：2026-08-22
+最后更新：2026-09-13
 
 ## 能力范围
 
@@ -32,6 +32,13 @@ Flyway `V10__bilibili_live_session.sql`：
 Flyway `V11__bilibili_live_danmaku_recent_sender_uid.sql` 为最近弹幕表增加可空 `sender_uid`。扫码登录成功后，后端会发布凭据激活事件，把当前仍处于 `ANONYMOUS` 的弹幕连接异步重连为 `LOGIN`；之后新收到的弹幕会尽量同时保存昵称和正 UID。已有历史记录如果只有脱敏昵称且缺少 UID，不会进行不可靠的猜测回填。
 
 事件类型包括 `DANMAKU`、`GIFT`、`SUPER_CHAT`、`GUARD_BUY`、`LIVE`、`PREPARING`、`METRICS` 和 `NOTIFICATION`。金额字段统一使用 `milli_yuan`（千分之一元）；免费/银瓜子礼物不把平台币价格误写成人民币单价。
+
+### 新版礼物协议兼容
+
+- 同时支持旧版 `SEND_GIFT` 与新版 `SEND_GIFT_V2`（`data.pb` 为 Base64 编码的 Protobuf）。新版字段参考 [blivedm 协议模型](https://github.com/xfgryujk/blivedm/blob/dev/blivedm/models/pb.py)。
+- 新版广播的每个 `gift_list` 条目分别转为 `GIFT`，保留 UID、昵称、粉丝牌、礼物名称、数量、币种、价格、总额、交易 ID 与时间；多礼物广播不只取第一项。
+- 沿用场次统计与导出口径。新旧协议同一交易使用一致的去重键；没有可靠交易 ID 时按连接和接收序号区分，不能保证跨重连去重。原始 JSON（含 `pb`）保留在事件中。
+- 损坏的 Base64/Protobuf 不伪造礼物，记录不包含原始用户数据的解析告警。旧版本已丢弃的未知消息无法凭截图或粉丝团人数可靠补录；修复从新收到的广播生效。
 
 ## 身份与统计口径
 
