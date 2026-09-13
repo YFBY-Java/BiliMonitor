@@ -398,7 +398,7 @@ async function loadSessions(toggleLoading = true) {
   if (!selectedMonitorId.value) return
   if (toggleLoading) loading.value = true
   try {
-    sessions.value = await fetchBilibiliLiveSessions(selectedMonitorId.value, 100)
+    sessions.value = await fetchBilibiliLiveSessions(selectedMonitorId.value, 200)
     const sessionFromRoute = numberQuery(route.query.sessionId)
     selectedSessionId.value = sessions.value.some(session => session.id === sessionFromRoute)
       ? sessionFromRoute

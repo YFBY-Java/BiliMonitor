@@ -134,13 +134,11 @@ public class BilibiliLiveEventIngestionService {
                     eventTime,
                     event.liveKey()
             );
-            case DANMAKU, GIFT, SUPER_CHAT, GUARD_BUY -> Optional.of(
-                    boundaryService.ensureActiveForEvent(
+            case DANMAKU, GIFT, SUPER_CHAT, GUARD_BUY -> boundaryService.ensureActiveForEvent(
                             room,
                             event.receivedAt() == null ? eventTime : event.receivedAt(),
                             eventTime
-                    )
-            );
+                    );
             case METRICS, NOTIFICATION -> boundaryService.findActive(room.id());
             case UNKNOWN -> Optional.empty();
         };

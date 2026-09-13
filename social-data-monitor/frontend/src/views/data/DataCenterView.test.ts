@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import source from './DataCenterView.vue?raw'
 
 describe('Data Center live-session workspace', () => {
+  it('loads 200 recent sessions for the selector', () => {
+    expect(source).toContain('fetchBilibiliLiveSessions(selectedMonitorId.value, 200)')
+  })
   it('replaces placeholder tables with session, event, user, and quality views', () => {
     expect(source).toContain('场次')
     expect(source).toContain('事件明细')

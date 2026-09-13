@@ -185,18 +185,33 @@ class BilibiliLiveSessionBoundaryServiceTests {
     }
 
     @Test
-    void eventActivityCancelsEndPending() {
+    void eventActivityDoesNotCancelEndPending() {
         BilibiliLiveRoomMonitor room = room(1, PLATFORM_LIVE_TIME);
         BilibiliLiveSession pending = activeSession("END_PENDING", PLATFORM_LIVE_TIME, PLATFORM_LIVE_TIME);
         when(repository.findActiveForUpdate(room.id())).thenReturn(Optional.of(pending));
 
-        BilibiliLiveSession result = service.ensureActiveForEvent(room, OBSERVED_AT);
+        BilibiliLiveSession result = service.ensureActiveForEvent(room, OBSERVED_AT).orElseThrow();
 
-        assertThat(result.state()).isEqualTo("OPEN");
-        assertThat(result.endSignalAt()).isNull();
-        assertThat(result.endSource()).isNull();
-        assertThat(result.lastObservedAt()).isEqualTo(OBSERVED_AT);
-        verify(repository).update(result);
+        assertThat(result).isEqualTo(pending);
+        verify(repository, never()).update(any());
+    }
+
+    @Test
+    void offlineOrStaleConnectionActivityNeverInventsNewSession() {
+        // Connection handles retain an old room snapshot, so even cached live=1 is not proof.
+        for (int status : new int[]{0, 2, 1}) {
+            assertThat(service.ensureActiveForEvent(room(status, null), OBSERVED_AT)).isEmpty();
+        }
+        verify(repository, never()).insertOpen(any());
+    }
+
+    @Test
+    void unknownRestStatusDoesNotEndActiveSession() {
+        var room = room(1, PLATFORM_LIVE_TIME);
+        var active = activeSession("OPEN", PLATFORM_LIVE_TIME, PLATFORM_LIVE_TIME);
+        when(repository.findActiveForUpdate(room.id())).thenReturn(Optional.of(active));
+        assertThat(service.reconcileRest(room, snapshot(null, null, OBSERVED_AT))).contains(active);
+        verify(repository, never()).update(any());
     }
 
     @Test
@@ -393,7 +408,7 @@ class BilibiliLiveSessionBoundaryServiceTests {
 
         BilibiliLiveSession result = service.ensureActiveForEvent(
                 room, OBSERVED_AT.plusMinutes(1), pending.endSignalAt().minusSeconds(1)
-        );
+        ).orElseThrow();
 
         assertThat(result).isEqualTo(pending);
         verify(repository, never()).update(any());
@@ -409,7 +424,7 @@ class BilibiliLiveSessionBoundaryServiceTests {
         when(repository.findActiveForUpdate(room.id())).thenReturn(Optional.of(current));
         when(repository.findByEventTimeForUpdate(room.id(), occurredAt)).thenReturn(Optional.of(historical));
 
-        BilibiliLiveSession result = service.ensureActiveForEvent(room, OBSERVED_AT, occurredAt);
+        BilibiliLiveSession result = service.ensureActiveForEvent(room, OBSERVED_AT, occurredAt).orElseThrow();
 
         assertThat(result).isEqualTo(historical);
         verify(repository, never()).update(any());
@@ -425,7 +440,7 @@ class BilibiliLiveSessionBoundaryServiceTests {
     }
 
     private BilibiliFetchedLiveRoomSnapshot snapshot(
-            int liveStatus,
+            Integer liveStatus,
             OffsetDateTime liveTime,
             OffsetDateTime fetchedAt
     ) {

@@ -19,6 +19,12 @@
 
 场次边界会综合 REST 快照、WebSocket `LIVE` / `PREPARING` 事件和迁移时的历史状态事件。`END_PENDING` 不会因为单个 `PREPARING` 包立即关闭；REST 复核确认后才写入最终结束边界。进程重启时遗留的 WebSocket 连接以最后心跳/连接时间保守收口，不把停机空档计为在线覆盖。
 
+只有 REST 确认 `live_status=1` 或 WebSocket `LIVE` 开播信号可以建立新场次。未开播（`0`）或轮播（`2`）的直播间仍可能收到弹幕、礼物，互动消息本身不能证明开播，也不能取消 `END_PENDING`；REST 缺少状态时不作下播判断。长连接保存的房间快照可能过时，不能以它作为新建场次的依据。
+
+互动按事件发生时间归属已存在的当前/历史场次。找不到场次时，仅保留实时弹幕/旧版指标投影，不创建场次明细或把下播后互动并入已结束的直播。之前由 `WS_EVENT_ACTIVITY` 产生的历史记录暂时原样保留，本次不自动删除、合并或伪造历史边界。
+
+数据中心和分析看板的场次下拉列表均加载最近 **200 场**，后端场次列表接口上限同步为 200；事件明细分页和 Top 用户数量不受此变更影响。
+
 ## 数据模型
 
 Flyway `V10__bilibili_live_session.sql`：
@@ -52,7 +58,7 @@ Flyway `V11__bilibili_live_danmaku_recent_sender_uid.sql` 为最近弹幕表增�
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `GET` | `/api/bilibili/live-monitor/rooms/{monitorId}/sessions?limit=20` | 查询直播间最近场次。 |
+| `GET` | `/api/bilibili/live-monitor/rooms/{monitorId}/sessions?limit=20` | 查询直播间最近场次，最多 200 场。 |
 | `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}` | 查询单场汇总。 |
 | `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/users?limit=100` | 查询单场身份记录。 |
 | `GET` | `/api/bilibili/live-monitor/sessions/{sessionId}/events?kind=&keyword=&userUid=&paid=&page=1&size=50` | 分页查询单场受支持事件；每页最多 100 条。 |

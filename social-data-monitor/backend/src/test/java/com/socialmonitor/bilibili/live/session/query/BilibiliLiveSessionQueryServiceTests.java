@@ -31,9 +31,9 @@ class BilibiliLiveSessionQueryServiceTests {
 
     @Test
     void capsRecentSessionAndUserLimits() {
-        when(repository.findRecentSessions(7L, 100)).thenReturn(List.of());
+        when(repository.findRecentSessions(7L, 200)).thenReturn(List.of());
         service.sessions(7L, 10_000);
-        verify(repository).findRecentSessions(7L, 100);
+        verify(repository).findRecentSessions(7L, 200);
 
         BilibiliLiveSessionSummaryView summary = summary(42L);
         when(repository.findSession(42L)).thenReturn(Optional.of(summary));

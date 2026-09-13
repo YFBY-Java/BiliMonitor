@@ -62,6 +62,18 @@ class BilibiliLiveEventIngestionServiceTests {
     }
 
     @Test
+    void offlineActivityStillProjectsRecentDataWithoutCreatingSessionRecord() {
+        BilibiliLiveDanmakuEvent event = danmaku();
+        when(boundaryService.ensureActiveForEvent(room(), event.receivedAt(), event.occurredAt()))
+                .thenReturn(Optional.empty());
+        assertThat(service.ingest(room(), 71L, 1L, 3, event, "Resolved Alice")).isFalse();
+        verify(eventRepository, never()).insertIfAbsent(
+                anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyInt(), any(), any()
+        );
+        verify(legacyRepository).insertRecent(11L, 33L, 22L, "hello", "Resolved Alice", "Fans", EVENT_TIME);
+    }
+
+    @Test
     void insertionAndLegacyProjectionShareOneTransaction() throws Exception {
         Method ingest = BilibiliLiveEventIngestionService.class.getMethod(
                 "ingest",
@@ -103,7 +115,7 @@ class BilibiliLiveEventIngestionServiceTests {
     void newlyInsertedDanmakuUpdatesLegacyProjectionAfterDeduplicatedInsert() {
         BilibiliLiveDanmakuEvent event = danmaku();
         BilibiliLiveSession liveSession = liveSession();
-        when(boundaryService.ensureActiveForEvent(room(), event.receivedAt(), EVENT_TIME)).thenReturn(liveSession);
+        when(boundaryService.ensureActiveForEvent(room(), event.receivedAt(), EVENT_TIME)).thenReturn(Optional.of(liveSession));
         when(eventRepository.insertIfAbsent(
                 liveSession.id(), 11L, 33L, 71L, 1L, 3, event, "Resolved Alice"
         )).thenReturn(true);
@@ -244,7 +256,7 @@ class BilibiliLiveEventIngestionServiceTests {
                 "same", null, null, null
         );
         when(boundaryService.ensureActiveForEvent(room(), noId.receivedAt(), noId.occurredAt()))
-                .thenReturn(liveSession());
+                .thenReturn(Optional.of(liveSession()));
         when(eventRepository.insertIfAbsent(90L, 11L, 33L, 71L, 1L, 3, noId, null)).thenReturn(true);
         when(eventRepository.insertIfAbsent(90L, 11L, 33L, 71L, 2L, 3, noId, null)).thenReturn(true);
 
@@ -270,7 +282,7 @@ class BilibiliLiveEventIngestionServiceTests {
                 "new title", null, EVENT_TIME.plusMinutes(1), EVENT_TIME.plusMinutes(1)
         );
         when(boundaryService.ensureActiveForEvent(room(), late.receivedAt(), late.occurredAt()))
-                .thenReturn(newer);
+                .thenReturn(Optional.of(newer));
 
         assertThat(service.ingest(room(), 71L, 7L, 3, late, null)).isFalse();
 
@@ -294,7 +306,7 @@ class BilibiliLiveEventIngestionServiceTests {
                 "old title", "old title", EVENT_TIME.minusMinutes(5), EVENT_TIME
         );
         when(boundaryService.ensureActiveForEvent(room(), late.receivedAt(), late.occurredAt()))
-                .thenReturn(closed);
+                .thenReturn(Optional.of(closed));
 
         assertThat(service.ingest(room(), 71L, 8L, 3, late, null)).isFalse();
 
@@ -308,7 +320,7 @@ class BilibiliLiveEventIngestionServiceTests {
     void insertConflictAfterRoutingStillProjectsEveryLegacyReceipt() {
         BilibiliLiveDanmakuEvent event = danmaku();
         when(boundaryService.ensureActiveForEvent(room(), event.receivedAt(), event.occurredAt()))
-                .thenReturn(liveSession());
+                .thenReturn(Optional.of(liveSession()));
         when(eventRepository.insertIfAbsent(
                 90L, 11L, 33L, 71L, 6L, 3, event, "Resolved Alice"
         )).thenReturn(false);
@@ -338,7 +350,7 @@ class BilibiliLiveEventIngestionServiceTests {
                 EVENT_TIME, EVENT_TIME, null, null, null, null, Metrics.empty(),
                 null, null, null, null
         );
-        when(boundaryService.ensureActiveForEvent(room(), EVENT_TIME, EVENT_TIME)).thenReturn(liveSession());
+        when(boundaryService.ensureActiveForEvent(room(), EVENT_TIME, EVENT_TIME)).thenReturn(Optional.of(liveSession()));
         when(boundaryService.findActive(11L)).thenReturn(Optional.of(liveSession()));
         when(eventRepository.insertIfAbsent(anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyInt(), any(), any()))
                 .thenReturn(true);

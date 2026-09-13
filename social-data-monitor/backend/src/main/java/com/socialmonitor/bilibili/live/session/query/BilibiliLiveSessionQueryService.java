@@ -24,7 +24,7 @@ public class BilibiliLiveSessionQueryService {
     }
 
     public List<BilibiliLiveSessionSummaryView> sessions(Long monitorId, int limit) {
-        return repository.findRecentSessions(monitorId, normalizeLimit(limit, 20, 100));
+        return repository.findRecentSessions(monitorId, normalizeLimit(limit, 20, 200));
     }
 
     public BilibiliLiveSessionSummaryView session(Long sessionId) {

@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import source from './AnalyticsView.vue?raw'
 
 describe('single-session analytics dashboard', () => {
+  it('loads 200 recent sessions for the selector', () => {
+    expect(source).toContain('fetchBilibiliLiveSessions(selectedMonitorId.value, 200)')
+  })
   it('shows decision metrics, time-aligned signals, segments, gift mix, and findings', () => {
     expect(source).toContain('弹幕速率')
     expect(source).toContain('付费转化率')

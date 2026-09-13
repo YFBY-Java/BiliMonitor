@@ -21,7 +21,6 @@ public class BilibiliLiveSessionBoundaryService {
     private static final String RESTART_DETECTED = "RESTART_DETECTED";
     private static final String WS_LIVE = "WS_LIVE";
     private static final String WS_PREPARING = "WS_PREPARING";
-    private static final String WS_EVENT_ACTIVITY = "WS_EVENT_ACTIVITY";
 
     private final BilibiliLiveSessionRepository repository;
 
@@ -61,7 +60,10 @@ public class BilibiliLiveSessionBoundaryService {
                 && snapshot.fetchedAt().isBefore(active.orElseThrow().endSignalAt())) {
             return active;
         }
-        if (snapshot.liveStatus() == null || snapshot.liveStatus() != 1) {
+        if (snapshot.liveStatus() == null) {
+            return active;
+        }
+        if (snapshot.liveStatus() != 1) {
             active.ifPresent(session -> repository.update(close(
                     session, snapshot.fetchedAt(), REST_STATUS, snapshot.title()
             )));
@@ -235,8 +237,9 @@ public class BilibiliLiveSessionBoundaryService {
         return Optional.of(pending);
     }
 
+    /** Route interaction to a confirmed current/historical session; never infer a start from activity. */
     @Transactional
-    public BilibiliLiveSession ensureActiveForEvent(
+    public Optional<BilibiliLiveSession> ensureActiveForEvent(
             BilibiliLiveRoomMonitor room,
             OffsetDateTime eventTime
     ) {
@@ -244,7 +247,7 @@ public class BilibiliLiveSessionBoundaryService {
     }
 
     @Transactional
-    public BilibiliLiveSession ensureActiveForEvent(
+    public Optional<BilibiliLiveSession> ensureActiveForEvent(
             BilibiliLiveRoomMonitor room,
             OffsetDateTime receivedAt,
             OffsetDateTime occurredAt
@@ -254,29 +257,24 @@ public class BilibiliLiveSessionBoundaryService {
         repository.lockMonitor(room.id());
         Optional<BilibiliLiveSession> active = repository.findActiveForUpdate(room.id());
         if (active.isEmpty()) {
-            Optional<BilibiliLiveSession> historical = repository.findByEventTimeForUpdate(
+            // Chat/gifts also arrive while offline. Only REST live=1 or LIVE may open a session.
+            // Do not trust room.liveStatus(): WebSocket handles can retain a stale room snapshot.
+            return repository.findByEventTimeForUpdate(
                     room.id(), eventTime
-            );
-            if (historical.isPresent()) {
-                return historical.orElseThrow();
-            }
-            return open(
-                    room, observationTime, eventTime, null, "activity:" + eventTime.toInstant(),
-                    WS_EVENT_ACTIVITY, room.title()
             );
         }
         BilibiliLiveSession current = active.orElseThrow();
         if (eventTime.isBefore(current.startedAt())) {
-            return repository.findByEventTimeForUpdate(room.id(), eventTime).orElse(current);
+            return repository.findByEventTimeForUpdate(room.id(), eventTime);
         }
-        if (isOlderThanPendingSignal(current, eventTime)) {
-            return current;
+        if (END_PENDING.equals(current.state())) {
+            return active;
         }
         BilibiliLiveSession observed = resume(
                 current, observationTime, null, null, false
         );
         repository.update(observed);
-        return observed;
+        return Optional.of(observed);
     }
 
     private BilibiliLiveSession open(
