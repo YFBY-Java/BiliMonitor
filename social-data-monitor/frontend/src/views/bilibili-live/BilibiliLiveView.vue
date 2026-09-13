@@ -294,6 +294,12 @@
               </div>
 
             </div>
+            <div class="room-danmu-panel">
+              <BilibiliLiveDanmuWidget
+                :key="expandedRoom.id"
+                :workbench="expandedDanmuWorkbench"
+              />
+            </div>
             <BilibiliLiveSessionPanel :monitor-id="expandedRoom.id" :room-name="expandedRoom.uname" />
           </article>
         </Transition>
@@ -504,6 +510,8 @@ import { Check, Delete, Link as LinkIcon, Moon, Plus, Refresh, Sunny, VideoPlay 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TrendChart from '@/components/charts/TrendChart.vue'
 import BilibiliLiveSessionPanel from '@/views/bilibili-live/components/BilibiliLiveSessionPanel.vue'
+import BilibiliLiveDanmuWidget from '@/views/subjects/widgets/BilibiliLiveDanmuWidget.vue'
+import type { SubjectDanmu } from '@/api/subjects'
 import {
   addBilibiliLiveRoom,
   deleteBilibiliLiveRoom,
@@ -590,6 +598,14 @@ const totalOnlineCount = computed(() =>
   liveRooms.value.reduce((sum, room) => sum + (room.onlineCount ?? 0), 0)
 )
 const expandedRoom = computed(() => rooms.value.find((room) => room.id === expandedRoomId.value))
+// Keep the initial state stable so room metadata refreshes do not clear live messages.
+const initialDanmu: SubjectDanmu = { enabled: true, status: 'waiting', recentMessages: [] }
+const expandedDanmuWorkbench = computed(() => ({
+  danmu: initialDanmu,
+  bilibiliLiveRoom: expandedRoom.value
+    ? { monitorId: expandedRoom.value.id, liveStatus: expandedRoom.value.liveStatus }
+    : undefined
+}))
 const selectedTrendRooms = computed(() =>
   selectedTrendRoomIds.value
     .map((id) => rooms.value.find((room) => room.id === id))
@@ -2167,6 +2183,12 @@ html[data-bilibili-live-theme='dark'] .main {
     radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--room-accent) 12%, transparent), transparent 30%),
     linear-gradient(135deg, color-mix(in srgb, var(--room-accent) 5%, transparent), transparent 48%),
     var(--surface-strong);
+}
+
+.room-danmu-panel {
+  min-width: 0;
+  height: clamp(420px, 65vh, 640px);
+  margin-top: 20px;
 }
 
 .detail-card-enter-active,

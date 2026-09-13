@@ -235,7 +235,12 @@ type RankSortOption = {
 }
 
 const MAX_RANK_ENTRIES = 100
-const props = defineProps<{ workbench: SubjectWorkbench }>()
+const props = defineProps<{
+  workbench: {
+    danmu: SubjectWorkbench['danmu']
+    bilibiliLiveRoom?: Pick<NonNullable<SubjectWorkbench['bilibiliLiveRoom']>, 'monitorId' | 'liveStatus'>
+  }
+}>()
 const emit = defineEmits<{
   refresh: []
 }>()
